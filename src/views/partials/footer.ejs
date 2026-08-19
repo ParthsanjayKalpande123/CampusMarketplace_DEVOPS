@@ -1,0 +1,46 @@
+<%# src/views/partials/footer.ejs %>
+<footer class="cm-footer mt-auto">
+  <div class="container">
+    <div class="row gy-4 py-5">
+      <div class="col-lg-4">
+        <a class="cm-brand text-decoration-none d-inline-flex align-items-center mb-3" href="/">
+          <i class="bi bi-shop me-2"></i>CampusMarket
+        </a>
+        <p class="text-muted small mb-0">
+          A trusted marketplace for students to buy, sell, and exchange items within their campus community.
+        </p>
+      </div>
+      <div class="col-6 col-lg-2 offset-lg-1">
+        <h6 class="fw-semibold mb-3">Marketplace</h6>
+        <ul class="list-unstyled mb-0">
+          <li class="mb-2"><a href="/" class="cm-footer-link">Browse All</a></li>
+          <li class="mb-2"><a href="/?condition=new" class="cm-footer-link">New Items</a></li>
+          <li class="mb-2"><a href="/post" class="cm-footer-link">Post a Listing</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-lg-2">
+        <h6 class="fw-semibold mb-3">Account</h6>
+        <ul class="list-unstyled mb-0">
+          <li class="mb-2"><a href="/my-listings" class="cm-footer-link">My Listings</a></li>
+          <li class="mb-2"><a href="/profile" class="cm-footer-link">Profile</a></li>
+          <li class="mb-2"><a href="/register" class="cm-footer-link">Create Account</a></li>
+        </ul>
+      </div>
+      <div class="col-12 col-lg-3">
+        <h6 class="fw-semibold mb-3">Safe Trading Tips</h6>
+        <ul class="list-unstyled mb-0 small text-muted">
+          <li class="mb-1">Meet in public campus areas only.</li>
+          <li class="mb-1">Inspect items before payment.</li>
+          <li class="mb-1">Report suspicious listings.</li>
+        </ul>
+      </div>
+    </div>
+    <hr class="cm-footer-divider" />
+    <div class="py-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+      <p class="text-muted small mb-0">
+        &copy; <%= new Date().getFullYear() %> Campus Marketplace. All rights reserved.
+      </p>
+      <p class="text-muted small mb-0">Built for student communities.</p>
+    </div>
+  </div>
+</footer>

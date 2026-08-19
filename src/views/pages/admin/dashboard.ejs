@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('../../partials/head', { title }) %>
+<body class="cm-admin-body">
+<div class="cm-admin-layout">
+
+  <%- include('../../partials/admin-sidebar') %>
+
+  <div class="cm-admin-main">
+
+    <!-- Top bar -->
+    <header class="cm-admin-topbar d-flex justify-content-between align-items-center px-4 py-3">
+      <h1 class="cm-page-title mb-0">Dashboard</h1>
+      <span class="text-muted small">
+        <%= new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' }) %>
+      </span>
+    </header>
+
+    <div class="p-4">
+
+      <!-- ── Stat cards ──────────────────────────────────────────── -->
+      <div class="row g-3 mb-5">
+        <div class="col-6 col-lg-3">
+          <div class="cm-admin-stat-card">
+            <div class="cm-admin-stat-icon cm-stat-users"><i class="bi bi-people-fill"></i></div>
+            <p class="cm-admin-stat-num"><%= stats.totalUsers %></p>
+            <p class="cm-admin-stat-label">Total Users</p>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="cm-admin-stat-card">
+            <div class="cm-admin-stat-icon cm-stat-listings"><i class="bi bi-box-seam-fill"></i></div>
+            <p class="cm-admin-stat-num"><%= stats.totalProducts %></p>
+            <p class="cm-admin-stat-label">Total Listings</p>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="cm-admin-stat-card">
+            <div class="cm-admin-stat-icon cm-stat-active"><i class="bi bi-check-circle-fill"></i></div>
+            <p class="cm-admin-stat-num"><%= stats.availableProducts %></p>
+            <p class="cm-admin-stat-label">Active Listings</p>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="cm-admin-stat-card">
+            <div class="cm-admin-stat-icon cm-stat-reports"><i class="bi bi-flag-fill"></i></div>
+            <p class="cm-admin-stat-num"><%= stats.pendingReports %></p>
+            <p class="cm-admin-stat-label">Pending Reports</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4">
+
+        <!-- ── Recent Listings ──────────────────────────────────── -->
+        <div class="col-12 col-xl-7">
+          <div class="cm-admin-card">
+            <div class="cm-admin-card-header d-flex justify-content-between align-items-center">
+              <h2 class="cm-admin-card-title mb-0">Recent Listings</h2>
+              <a href="/" class="btn btn-sm btn-light">View all</a>
+            </div>
+            <% if (stats.recentProducts.length === 0) { %>
+              <p class="text-muted p-3 mb-0">No listings yet.</p>
+            <% } else { %>
+              <div class="table-responsive">
+                <table class="table cm-listings-table mb-0">
+                  <thead><tr>
+                    <th>Title</th><th>Seller</th><th>Price</th><th>Status</th>
+                  </tr></thead>
+                  <tbody>
+                    <% stats.recentProducts.forEach(function(p) { %>
+                      <%
+                        const sMap = {available:'badge-available',sold:'badge-sold',exchanged:'badge-exchanged',inactive:'badge-inactive'};
+                      %>
+                      <tr>
+                        <td><a href="/listings/<%= p._id %>" class="cm-link fw-medium">
+                          <%= p.title.length > 40 ? p.title.substring(0,37)+'...' : p.title %>
+                        </a></td>
+                        <td class="text-muted small"><%= p.seller ? p.seller.name : 'N/A' %></td>
+                        <td class="fw-semibold">Rs. <%= p.price.toLocaleString('en-IN') %></td>
+                        <td><span class="cm-status-badge <%= sMap[p.status] || 'badge-inactive' %>">
+                          <%= p.status.charAt(0).toUpperCase() + p.status.slice(1) %>
+                        </span></td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- ── Recent Users ─────────────────────────────────────── -->
+        <div class="col-12 col-xl-5">
+          <div class="cm-admin-card">
+            <div class="cm-admin-card-header d-flex justify-content-between align-items-center">
+              <h2 class="cm-admin-card-title mb-0">Recent Users</h2>
+              <a href="/admin/users" class="btn btn-sm btn-light">View all</a>
+            </div>
+            <% if (stats.recentUsers.length === 0) { %>
+              <p class="text-muted p-3 mb-0">No users yet.</p>
+            <% } else { %>
+              <ul class="list-unstyled mb-0 p-3">
+                <% stats.recentUsers.forEach(function(u) { %>
+                  <li class="d-flex align-items-center gap-3 mb-3">
+                    <div class="cm-seller-avatar cm-seller-avatar-sm d-flex align-items-center justify-content-center">
+                      <i class="bi bi-person-fill" style="font-size:.9rem;"></i>
+                    </div>
+                    <div class="flex-grow-1 overflow-hidden">
+                      <p class="fw-medium mb-0 small text-truncate"><%= u.name %></p>
+                      <p class="text-muted mb-0 small text-truncate"><%= u.email %></p>
+                    </div>
+                    <span class="badge <%= u.role === 'admin' ? 'bg-danger' : 'bg-light text-dark border' %>" style="font-size:.7rem;">
+                      <%= u.role %>
+                    </span>
+                  </li>
+                <% }); %>
+              </ul>
+            <% } %>
+          </div>
+        </div>
+
+      </div><!-- /row -->
+    </div><!-- /p-4 -->
+  </div><!-- /cm-admin-main -->
+</div><!-- /cm-admin-layout -->
+
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmVwGS0h2VbFfBzJlDa/K/VOh4v"
+  crossorigin="anonymous"
+></script>
+<script src="/js/main.js"></script>
+<script>
+  const ab = document.getElementById('adminLogoutBtn');
+  if (ab) ab.addEventListener('click', window.CampusMarket.logout);
+</script>
+</body>
+</html>

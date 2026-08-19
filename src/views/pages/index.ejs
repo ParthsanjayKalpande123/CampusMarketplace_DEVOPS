@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" class="h-100">
+<%- include('../partials/head', { title }) %>
+<body class="d-flex flex-column h-100 cm-bg">
+
+<%- include('../partials/navbar') %>
+
+<!-- Hero search bar -->
+<section class="cm-hero py-5">
+  <div class="container text-center">
+    <h1 class="cm-hero-title mb-2">Find What You Need on Campus</h1>
+    <p class="cm-hero-subtitle mb-4">Buy, sell and exchange used items within your college community.</p>
+    <form class="cm-hero-search mx-auto" action="/" method="GET">
+      <div class="input-group input-group-lg">
+        <input
+          type="search"
+          name="q"
+          class="form-control"
+          placeholder="Search for textbooks, electronics, cycles..."
+          value="<%= query.q || '' %>"
+          aria-label="Search listings"
+        />
+        <button class="btn cm-btn-primary px-4" type="submit">Search</button>
+      </div>
+      <%# Preserve other active filters %>
+      <% if (query.category) { %><input type="hidden" name="category" value="<%= query.category %>" /><% } %>
+      <% if (query.condition) { %><input type="hidden" name="condition" value="<%= query.condition %>" /><% } %>
+      <% if (query.minPrice)  { %><input type="hidden" name="minPrice"  value="<%= query.minPrice  %>" /><% } %>
+      <% if (query.maxPrice)  { %><input type="hidden" name="maxPrice"  value="<%= query.maxPrice  %>" /><% } %>
+    </form>
+  </div>
+</section>
+
+<main class="flex-grow-1 py-5">
+  <div class="container">
+    <div class="row g-4">
+
+      <!-- ============================================================
+           Sidebar — Filters
+           ============================================================ -->
+      <aside class="col-lg-3">
+        <div class="cm-filter-panel">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="cm-filter-title mb-0">Filters</h2>
+            <a href="/" class="btn btn-link btn-sm text-muted p-0">Clear all</a>
+          </div>
+
+          <form id="filterForm" action="/" method="GET">
+            <!-- Preserve search query -->
+            <% if (query.q) { %><input type="hidden" name="q" value="<%= query.q %>" /><% } %>
+
+            <!-- Category -->
+            <div class="mb-4">
+              <h3 class="cm-filter-section-title">Category</h3>
+              <div class="cm-filter-scroll">
+                <div class="form-check mb-1">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="category"
+                    id="catAll"
+                    value=""
+                    <%= !query.category ? 'checked' : '' %>
+                  />
+                  <label class="form-check-label" for="catAll">All Categories</label>
+                </div>
+                <% categories.forEach(function(cat) { %>
+                  <div class="form-check mb-1">
+                    <input
+                      class="form-check-input"
+                      type="radio"
+                      name="category"
+                      id="cat-<%= cat._id %>"
+                      value="<%= cat._id %>"
+                      <%= query.category === cat._id.toString() ? 'checked' : '' %>
+                    />
+                    <label class="form-check-label" for="cat-<%= cat._id %>"><%= cat.name %></label>
+                  </div>
+                <% }); %>
+              </div>
+            </div>
+
+            <!-- Condition -->
+            <div class="mb-4">
+              <h3 class="cm-filter-section-title">Condition</h3>
+              <% [['','All'],['new','New'],['like-new','Like New'],['good','Good'],['fair','Fair'],['poor','Poor']].forEach(function(opt) { %>
+                <div class="form-check mb-1">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="condition"
+                    id="cond-<%= opt[0] || 'all' %>"
+                    value="<%= opt[0] %>"
+                    <%= query.condition === opt[0] ? 'checked' : (!query.condition && opt[0] === '' ? 'checked' : '') %>
+                  />
+                  <label class="form-check-label" for="cond-<%= opt[0] || 'all' %>"><%= opt[1] %></label>
+                </div>
+              <% }); %>
+            </div>
+
+            <!-- Price Range -->
+            <div class="mb-4">
+              <h3 class="cm-filter-section-title">Price Range (Rs.)</h3>
+              <div class="row g-2">
+                <div class="col-6">
+                  <input
+                    type="number"
+                    class="form-control form-control-sm"
+                    name="minPrice"
+                    placeholder="Min"
+                    value="<%= query.minPrice || '' %>"
+                    min="0"
+                  />
+                </div>
+                <div class="col-6">
+                  <input
+                    type="number"
+                    class="form-control form-control-sm"
+                    name="maxPrice"
+                    placeholder="Max"
+                    value="<%= query.maxPrice || '' %>"
+                    min="0"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn cm-btn-primary w-100">Apply Filters</button>
+          </form>
+        </div>
+      </aside>
+
+      <!-- ============================================================
+           Main — Product Grid
+           ============================================================ -->
+      <div class="col-lg-9">
+
+        <!-- Results header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+          <div>
+            <h2 class="cm-section-title mb-0">
+              <% if (query.q) { %>Results for "<%= query.q %>"<% } else { %>All Listings<% } %>
+            </h2>
+            <p class="text-muted small mb-0"><%= pagination.total %> item<%= pagination.total !== 1 ? 's' : '' %> found</p>
+          </div>
+          <!-- Sort -->
+          <form action="/" method="GET" class="d-flex align-items-center gap-2">
+            <% if (query.q)        { %><input type="hidden" name="q"         value="<%= query.q %>" /><% } %>
+            <% if (query.category) { %><input type="hidden" name="category"  value="<%= query.category %>" /><% } %>
+            <% if (query.condition){ %><input type="hidden" name="condition"  value="<%= query.condition %>" /><% } %>
+            <% if (query.minPrice) { %><input type="hidden" name="minPrice"   value="<%= query.minPrice %>" /><% } %>
+            <% if (query.maxPrice) { %><input type="hidden" name="maxPrice"   value="<%= query.maxPrice %>" /><% } %>
+            <label class="text-muted small mb-0 text-nowrap" for="sortBySelect">Sort by</label>
+            <select id="sortBySelect" name="sortBy" class="form-select form-select-sm cm-sort-select" onchange="this.form.submit()">
+              <option value="createdAt" <%= (query.sortBy || 'createdAt') === 'createdAt' ? 'selected' : '' %>>Newest</option>
+              <option value="price"     <%= query.sortBy === 'price'     ? 'selected' : '' %>>Price: Low to High</option>
+            </select>
+            <% if (query.sortBy === 'price') { %>
+              <input type="hidden" name="sortOrder" value="asc" />
+            <% } %>
+          </form>
+        </div>
+
+        <!-- Product grid -->
+        <% if (products.length === 0) { %>
+          <div class="cm-empty-state text-center py-5">
+            <i class="bi bi-search" style="font-size:3rem; color:var(--color-muted);"></i>
+            <h3 class="mt-3 mb-1">No listings found</h3>
+            <p class="text-muted">Try a different search term or remove some filters.</p>
+            <a href="/" class="btn cm-btn-outline mt-2">Clear Filters</a>
+          </div>
+        <% } else { %>
+          <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-4">
+            <% products.forEach(function(product) { %>
+              <div class="col">
+                <%- include('../partials/product-card', { product }) %>
+              </div>
+            <% }); %>
+          </div>
+        <% } %>
+
+        <!-- Pagination -->
+        <% if (pagination.pages > 1) { %>
+          <nav class="mt-5" aria-label="Listings pagination">
+            <ul class="pagination justify-content-center cm-pagination">
+              <!-- Previous -->
+              <li class="page-item <%= pagination.page <= 1 ? 'disabled' : '' %>">
+                <a class="page-link" href="?<%= new URLSearchParams({...query, page: pagination.page - 1}).toString() %>">&laquo;</a>
+              </li>
+              <!-- Pages -->
+              <% for (let p = 1; p <= pagination.pages; p++) { %>
+                <li class="page-item <%= p === pagination.page ? 'active' : '' %>">
+                  <a class="page-link" href="?<%= new URLSearchParams({...query, page: p}).toString() %>"><%= p %></a>
+                </li>
+              <% } %>
+              <!-- Next -->
+              <li class="page-item <%= pagination.page >= pagination.pages ? 'disabled' : '' %>">
+                <a class="page-link" href="?<%= new URLSearchParams({...query, page: pagination.page + 1}).toString() %>">&raquo;</a>
+              </li>
+            </ul>
+          </nav>
+        <% } %>
+
+      </div><!-- /col-lg-9 -->
+    </div><!-- /row -->
+  </div><!-- /container -->
+</main>
+
+<%- include('../partials/footer') %>
+
+<!-- Bootstrap 5 JS -->
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmVwGS0h2VbFfBzJlDa/K/VOh4v"
+  crossorigin="anonymous"
+></script>
+<script src="/js/main.js"></script>
+
+</body>
+</html>

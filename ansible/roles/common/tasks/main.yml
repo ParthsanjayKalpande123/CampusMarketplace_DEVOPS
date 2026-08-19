@@ -1,0 +1,91 @@
+---
+# =============================================================================
+# ansible/roles/common/tasks/main.yml
+#
+# Idempotent system setup tasks.
+# Ensures Docker and Docker Compose are installed and running.
+# Safe to re-run on every deployment — tasks skip if already satisfied.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Docker service
+# ---------------------------------------------------------------------------
+
+- name: Ensure Docker is installed
+  ansible.builtin.package:
+    name: docker
+    state: present
+  tags: docker
+
+- name: Ensure Docker service is enabled and started
+  ansible.builtin.systemd:
+    name:    docker
+    state:   started
+    enabled: true
+  tags: docker
+
+- name: Add ec2-user to the docker group (no sudo for docker commands)
+  ansible.builtin.user:
+    name:   ec2-user
+    groups: docker
+    append: true
+  tags: docker
+
+# ---------------------------------------------------------------------------
+# Docker Compose plugin (v2)
+# ---------------------------------------------------------------------------
+
+- name: Create Docker CLI plugins directory
+  ansible.builtin.file:
+    path:  /usr/local/lib/docker/cli-plugins
+    state: directory
+    mode:  "0755"
+  tags: docker-compose
+
+- name: Check if Docker Compose plugin exists
+  ansible.builtin.stat:
+    path: /usr/local/lib/docker/cli-plugins/docker-compose
+  register: compose_stat
+  tags: docker-compose
+
+- name: Install Docker Compose plugin
+  ansible.builtin.get_url:
+    url:  https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64
+    dest: /usr/local/lib/docker/cli-plugins/docker-compose
+    mode: "0755"
+  when: not compose_stat.stat.exists
+  tags: docker-compose
+
+- name: Verify Docker Compose version
+  ansible.builtin.command: docker compose version
+  register: compose_version
+  changed_when: false
+  tags: docker-compose
+
+- name: Display Docker Compose version
+  ansible.builtin.debug:
+    msg: "{{ compose_version.stdout }}"
+  tags: docker-compose
+
+# ---------------------------------------------------------------------------
+# AWS CLI (required for ECR login inside the instance)
+# ---------------------------------------------------------------------------
+
+- name: Ensure AWS CLI is installed
+  ansible.builtin.package:
+    name: awscli
+    state: present
+  tags: awscli
+
+# ---------------------------------------------------------------------------
+# Application directory
+# ---------------------------------------------------------------------------
+
+- name: Create application directory
+  ansible.builtin.file:
+    path:  /opt/campus-marketplace
+    state: directory
+    owner: ec2-user
+    group: ec2-user
+    mode:  "0755"
+  tags: setup

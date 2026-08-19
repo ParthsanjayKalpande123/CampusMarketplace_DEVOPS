@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" class="h-100">
+<%- include('../partials/head', { title }) %>
+<body class="d-flex flex-column h-100 cm-bg">
+
+<%- include('../partials/navbar') %>
+
+<main class="flex-grow-1 py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-lg-8 col-xl-7">
+
+        <div class="d-flex align-items-center justify-content-between mb-4">
+          <h1 class="cm-page-title mb-0">
+            <%= product ? 'Edit Listing' : 'Post a Listing' %>
+          </h1>
+          <% if (product) { %>
+            <a href="/listings/<%= product._id %>" class="btn btn-sm btn-light">
+              <i class="bi bi-arrow-left me-1"></i>Back to Listing
+            </a>
+          <% } %>
+        </div>
+
+        <div id="formAlert" class="alert d-none"></div>
+
+        <div class="cm-form-card">
+          <form id="listingForm" novalidate>
+            <!-- Hidden fields for edit mode -->
+            <input type="hidden" id="productId" value="<%= product ? product._id : '' %>" />
+            <input type="hidden" id="formMode"  value="<%= product ? 'edit' : 'create' %>" />
+
+            <!-- Title -->
+            <div class="mb-4">
+              <label for="title" class="form-label fw-medium">Title <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control cm-form-control"
+                id="title"
+                placeholder="e.g. MTech Engineering Mathematics Textbook"
+                maxlength="200"
+                value="<%= product ? product.title : '' %>"
+                required
+              />
+              <div class="form-text">3–200 characters.</div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-4">
+              <label for="description" class="form-label fw-medium">Description <span class="text-danger">*</span></label>
+              <textarea
+                class="form-control cm-form-control"
+                id="description"
+                rows="4"
+                placeholder="Describe the item — edition, condition details, why you are selling, etc."
+                maxlength="2000"
+                required
+              ><%= product ? product.description : '' %></textarea>
+              <div class="form-text">10–2000 characters.</div>
+            </div>
+
+            <div class="row g-3 mb-4">
+
+              <!-- Category -->
+              <div class="col-md-6">
+                <label for="category" class="form-label fw-medium">Category <span class="text-danger">*</span></label>
+                <select class="form-select cm-form-control" id="category" required>
+                  <option value="">Select a category</option>
+                  <% categories.forEach(function(cat) { %>
+                    <option
+                      value="<%= cat._id %>"
+                      <%= (product && product.category && product.category._id.toString() === cat._id.toString()) ? 'selected' : '' %>
+                    ><%= cat.name %></option>
+                  <% }); %>
+                </select>
+              </div>
+
+              <!-- Condition -->
+              <div class="col-md-6">
+                <label for="condition" class="form-label fw-medium">Condition <span class="text-danger">*</span></label>
+                <select class="form-select cm-form-control" id="condition" required>
+                  <option value="">Select condition</option>
+                  <option value="new"      <%= product && product.condition === 'new'      ? 'selected' : '' %>>New</option>
+                  <option value="like-new" <%= product && product.condition === 'like-new' ? 'selected' : '' %>>Like New</option>
+                  <option value="good"     <%= product && product.condition === 'good'     ? 'selected' : '' %>>Good</option>
+                  <option value="fair"     <%= product && product.condition === 'fair'     ? 'selected' : '' %>>Fair</option>
+                  <option value="poor"     <%= product && product.condition === 'poor'     ? 'selected' : '' %>>Poor</option>
+                </select>
+              </div>
+
+              <!-- Price -->
+              <div class="col-md-6">
+                <label for="price" class="form-label fw-medium">Price (Rs.) <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text">Rs.</span>
+                  <input
+                    type="number"
+                    class="form-control cm-form-control"
+                    id="price"
+                    placeholder="0"
+                    min="0"
+                    max="999999"
+                    step="1"
+                    value="<%= product ? product.price : '' %>"
+                    required
+                  />
+                </div>
+                <div class="form-text">Enter 0 for free items.</div>
+              </div>
+
+              <!-- Location -->
+              <div class="col-md-6">
+                <label for="location" class="form-label fw-medium">Location <span class="text-muted">(optional)</span></label>
+                <input
+                  type="text"
+                  class="form-control cm-form-control"
+                  id="location"
+                  placeholder="e.g. Hostel Block A"
+                  maxlength="200"
+                  value="<%= product && product.location ? product.location : '' %>"
+                />
+              </div>
+
+            </div>
+
+            <!-- Image URL -->
+            <div class="mb-4">
+              <label for="imageUrl" class="form-label fw-medium">Image URL <span class="text-muted">(optional)</span></label>
+              <input
+                type="url"
+                class="form-control cm-form-control"
+                id="imageUrl"
+                placeholder="https://example.com/image.jpg"
+                value="<%= product && product.imageUrl ? product.imageUrl : '' %>"
+              />
+              <div class="form-text">Paste a direct link to an image (hosted on any public URL).</div>
+            </div>
+
+            <!-- Exchange toggle -->
+            <div class="mb-4">
+              <div class="form-check form-switch">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id="isExchangeable"
+                  <%= (product && product.isExchangeable) ? 'checked' : '' %>
+                />
+                <label class="form-check-label fw-medium" for="isExchangeable">
+                  Open to exchange / barter
+                </label>
+              </div>
+              <div class="form-text">Check this if you are willing to exchange the item instead of (or alongside) selling it.</div>
+            </div>
+
+            <!-- Submit -->
+            <div class="d-flex gap-3">
+              <button type="submit" class="btn cm-btn-primary" id="submitBtn">
+                <%= product ? 'Save Changes' : 'Post Listing' %>
+              </button>
+              <a href="<%= product ? '/listings/' + product._id : '/my-listings' %>" class="btn btn-light">
+                Cancel
+              </a>
+            </div>
+
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>
+
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmVwGS0h2VbFfBzJlDa/K/VOh4v"
+  crossorigin="anonymous"
+></script>
+<script src="/js/main.js"></script>
+<script src="/js/post-listing.js"></script>
+
+</body>
+</html>

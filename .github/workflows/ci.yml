@@ -1,0 +1,76 @@
+# =============================================================================
+# .github/workflows/ci.yml — Continuous Integration
+#
+# Triggers:
+#   - Every push to any branch
+#   - Every pull request targeting main
+#   - workflow_call (allows cd.yml to reuse this job)
+#
+# Jobs:
+#   test — Install deps, run the full Jest test suite against a
+#           real MongoDB service container (not mock)
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main, develop]
+  workflow_call:          # Allows cd.yml to call this workflow directly
+    outputs:
+      outcome:
+        description: "Test outcome"
+        value: ${{ jobs.test.outputs.outcome }}
+
+jobs:
+  test:
+    name: Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+
+    outputs:
+      outcome: ${{ steps.run-tests.outcome }}
+
+    strategy:
+      matrix:
+        node-version: ["22"]   # Pin to Node.js LTS
+
+    # MongoDB service container — mirrors the real production DB engine
+    services:
+      mongodb:
+        image: mongo:7-jammy
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval \"db.adminCommand('ping').ok\""
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 20s
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run test suite
+        id: run-tests
+        run: npm test -- --runInBand --forceExit
+        env:
+          NODE_ENV:        test
+          MONGODB_URI:     mongodb://localhost:27017/campus_marketplace_test
+          JWT_SECRET:      ci-test-jwt-secret-long-enough-32characters!
+          JWT_EXPIRES_IN:  1h
+          COOKIE_SECURE:   "false"
+          COOKIE_SAME_SITE: lax
+          LOG_LEVEL:       error
+          PORT:            3001

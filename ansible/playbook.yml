@@ -1,0 +1,37 @@
+# =============================================================================
+# ansible/playbook.yml — Main Deployment Playbook
+#
+# Roles executed in order:
+#   1. common — Verify Docker is installed and running, install dependencies
+#   2. deploy — Pull the latest image from ECR and restart the application
+#
+# Required extra-vars (passed by cd.yml or manually):
+#   ecr_registry        — ECR registry hostname
+#   ecr_repository      — ECR repository name
+#   image_tag           — Docker image tag to deploy
+#   aws_region          — AWS region (for ECR auth)
+#   jwt_secret          — Production JWT secret
+#   mongodb_uri         — MongoDB connection string
+#   cors_origin         — Allowed CORS origin
+#   mongo_root_password — MongoDB root password
+#
+# Run manually:
+#   ansible-playbook ansible/playbook.yml \
+#     -i ansible/inventory/hosts.ini \
+#     --extra-vars "ecr_registry=... ecr_repository=campus-marketplace image_tag=abc1234 ..."
+# =============================================================================
+
+---
+- name: Campus Marketplace — Production Deployment
+  hosts: campus_marketplace
+  become: true             # sudo for system operations
+  gather_facts: true
+
+  vars:
+    app_dir:         /opt/campus-marketplace
+    app_port:        3000
+    mongo_root_user: cmadmin
+
+  roles:
+    - common
+    - deploy

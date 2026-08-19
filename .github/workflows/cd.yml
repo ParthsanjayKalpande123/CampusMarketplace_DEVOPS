@@ -1,0 +1,146 @@
+# =============================================================================
+# .github/workflows/cd.yml — Continuous Deployment
+#
+# Triggers:
+#   - Push to the main branch ONLY
+#
+# Pipeline:
+#   1. test        — Calls ci.yml (reusable workflow). Gate for deployment.
+#   2. build-push  — Build Docker image, tag with git SHA + latest, push to ECR.
+#   3. deploy      — Run Ansible playbook on the EC2 instance to pull the new
+#                    image and restart the Docker Compose stack.
+#
+# Required GitHub Secrets:
+#   AWS_ACCESS_KEY_ID       — IAM user with ECR push and EC2 describe permissions
+#   AWS_SECRET_ACCESS_KEY
+#   AWS_REGION              — e.g. ap-south-1
+#   ECR_REPOSITORY          — ECR repository name (e.g. campus-marketplace)
+#   EC2_HOST                — Public IP or DNS of the EC2 instance
+#   EC2_SSH_KEY             — PEM private key content for SSH access
+#   JWT_SECRET              — Production JWT secret (min 32 chars)
+#   MONGODB_URI             — mongodb://mongodb:27017/campus_marketplace
+#   CORS_ORIGIN             — e.g. https://your-domain.com
+#   MONGO_ROOT_PASSWORD     — MongoDB root password for production
+# =============================================================================
+
+name: CD — Build, Push & Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1 — Run full test suite (reuses ci.yml)
+  # ---------------------------------------------------------------------------
+  test:
+    name: Test Gate
+    uses: ./.github/workflows/ci.yml
+
+  # ---------------------------------------------------------------------------
+  # Job 2 — Build Docker image and push to Amazon ECR
+  # ---------------------------------------------------------------------------
+  build-push:
+    name: Build & Push to ECR
+    needs: test
+    runs-on: ubuntu-latest
+
+    outputs:
+      image-tag:    ${{ steps.meta.outputs.tag }}
+      ecr-registry: ${{ steps.login-ecr.outputs.registry }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Generate image metadata
+        id: meta
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "tag=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "Image tag: ${SHORT_SHA}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push Docker image
+        env:
+          ECR_REGISTRY:   ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG:      ${{ steps.meta.outputs.tag }}
+        run: |
+          docker build \
+            -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
+            -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
+            --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --build-arg GIT_SHA="${IMAGE_TAG}" \
+            .
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          echo "Pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+  # ---------------------------------------------------------------------------
+  # Job 3 — Deploy to EC2 via Ansible
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy to EC2 (Ansible)
+    needs: build-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install Python, Ansible, and boto3
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install ansible boto3 botocore
+
+      - name: Write SSH private key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > /tmp/deploy_key.pem
+          chmod 600 /tmp/deploy_key.pem
+
+      - name: Write dynamic Ansible inventory
+        run: |
+          cat > ansible/inventory/hosts.ini <<EOF
+          [campus_marketplace]
+          ${{ secrets.EC2_HOST }} ansible_user=ec2-user ansible_ssh_private_key_file=/tmp/deploy_key.pem ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+          EOF
+
+      - name: Run Ansible deploy playbook
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+          ANSIBLE_STDOUT_CALLBACK:   "yaml"
+        run: |
+          ansible-playbook ansible/playbook.yml \
+            -i ansible/inventory/hosts.ini \
+            --extra-vars "\
+              ecr_registry=${{ needs.build-push.outputs.ecr-registry }} \
+              ecr_repository=${{ secrets.ECR_REPOSITORY }} \
+              image_tag=${{ needs.build-push.outputs.image-tag }} \
+              aws_region=${{ secrets.AWS_REGION }} \
+              jwt_secret='${{ secrets.JWT_SECRET }}' \
+              mongodb_uri='${{ secrets.MONGODB_URI }}' \
+              cors_origin='${{ secrets.CORS_ORIGIN }}' \
+              mongo_root_password='${{ secrets.MONGO_ROOT_PASSWORD }}'"
+
+      - name: Health check — verify deployment
+        run: |
+          sleep 15
+          curl --fail --retry 5 --retry-delay 5 \
+            "http://${{ secrets.EC2_HOST }}:3000/api/v1/health" \
+            | python3 -m json.tool
+          echo "Deployment health check passed."
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f /tmp/deploy_key.pem

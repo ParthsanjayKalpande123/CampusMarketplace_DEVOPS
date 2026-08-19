@@ -1,0 +1,32 @@
+# =============================================================================
+# terraform/terraform.tfvars.example
+#
+# Copy this file to terraform.tfvars and fill in your values.
+# NEVER commit terraform.tfvars to version control (.gitignore is pre-set).
+#
+# Usage:
+#   cp terraform.tfvars.example terraform.tfvars
+#   # edit terraform.tfvars
+#   terraform init
+#   terraform plan
+#   terraform apply
+# =============================================================================
+
+aws_region        = "ap-south-1"
+project_name      = "campus-marketplace"
+environment       = "prod"
+
+# EC2 configuration
+ec2_instance_type       = "t3.micro"
+ec2_key_pair_name       = "your-key-pair-name"       # Must already exist in AWS
+ec2_root_volume_size_gb = 20
+
+# Security — IMPORTANT: restrict to your own IP range before deploying
+# Example: "203.0.113.10/32"
+allowed_ssh_cidr = "0.0.0.0/0"
+
+# Application
+app_port = 3000
+
+# ECR image retention
+ecr_image_retention_count = 5

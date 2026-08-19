@@ -1,0 +1,66 @@
+<%# src/views/partials/product-card.ejs %>
+<%# Params: product (populated Product document) %>
+<%
+  const conditionLabels = {
+    'new':      'New',
+    'like-new': 'Like New',
+    'good':     'Good',
+    'fair':     'Fair',
+    'poor':     'Poor',
+  };
+  const statusLabels = {
+    'available': { label: 'Available',  cls: 'badge-available'  },
+    'sold':      { label: 'Sold',       cls: 'badge-sold'       },
+    'exchanged': { label: 'Exchanged',  cls: 'badge-exchanged'  },
+    'inactive':  { label: 'Inactive',   cls: 'badge-inactive'   },
+  };
+  const statusInfo    = statusLabels[product.status] || statusLabels['available'];
+  const conditionLabel = conditionLabels[product.condition] || product.condition;
+  const sellerName    = product.seller ? product.seller.name : 'Unknown';
+  const categoryName  = product.category ? product.category.name : '';
+%>
+<div class="cm-product-card h-100">
+  <a href="/listings/<%= product._id %>" class="text-decoration-none d-block position-relative">
+
+    <!-- Product image -->
+    <div class="cm-card-image-wrap">
+      <% if (product.imageUrl) { %>
+        <img
+          src="<%= product.imageUrl %>"
+          alt="<%= product.title %>"
+          class="cm-card-image"
+          loading="lazy"
+          onerror="this.src='/img/placeholder.svg'"
+        />
+      <% } else { %>
+        <div class="cm-card-image-placeholder d-flex align-items-center justify-content-center">
+          <i class="bi bi-image text-muted" style="font-size:2.5rem;"></i>
+        </div>
+      <% } %>
+      <!-- Status badge -->
+      <span class="cm-status-badge <%= statusInfo.cls %>"><%= statusInfo.label %></span>
+      <!-- Exchange badge -->
+      <% if (product.isExchangeable) { %>
+        <span class="cm-exchange-badge"><i class="bi bi-arrow-left-right me-1"></i>Exchange</span>
+      <% } %>
+    </div>
+
+    <!-- Card body -->
+    <div class="cm-card-body">
+      <% if (categoryName) { %>
+        <span class="cm-category-pill"><%= categoryName %></span>
+      <% } %>
+      <h3 class="cm-card-title"><%= product.title %></h3>
+      <div class="d-flex align-items-center justify-content-between mt-2">
+        <span class="cm-card-price">Rs. <%= product.price.toLocaleString('en-IN') %></span>
+        <span class="cm-condition-badge"><%= conditionLabel %></span>
+      </div>
+      <div class="cm-card-seller mt-2">
+        <i class="bi bi-person me-1"></i><%= sellerName %>
+        <% if (product.seller && product.seller.college) { %>
+          &bull; <%= product.seller.college %>
+        <% } %>
+      </div>
+    </div>
+  </a>
+</div>

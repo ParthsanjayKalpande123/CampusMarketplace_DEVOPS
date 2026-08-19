@@ -1,0 +1,95 @@
+# =============================================================================
+# docker-compose.prod.yml — Production Deployment
+#
+# Used by Ansible on the EC2 instance after Terraform provisions infrastructure.
+#
+# This file uses a pre-built image pulled from Amazon ECR instead of building
+# from source. All sensitive values come from environment variables injected
+# by Ansible from the EC2 instance's environment or a secrets file.
+#
+# Usage (run by Ansible):
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml down
+#
+# Required env vars (set by Ansible):
+#   ECR_REGISTRY    — e.g. 123456789012.dkr.ecr.ap-south-1.amazonaws.com
+#   ECR_REPOSITORY  — e.g. campus-marketplace
+#   IMAGE_TAG       — e.g. latest or a git SHA
+#   MONGODB_URI     — mongodb://mongodb:27017/campus_marketplace  (internal)
+#   JWT_SECRET      — strong random 64-char string
+#   CORS_ORIGIN     — e.g. https://your-domain.com
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Application — pre-built ECR image
+  # ---------------------------------------------------------------------------
+  app:
+    image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG:-latest}
+    container_name: campus_marketplace_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV:        production
+      PORT:            3000
+      MONGODB_URI:     ${MONGODB_URI}
+      JWT_SECRET:      ${JWT_SECRET}
+      JWT_EXPIRES_IN:  ${JWT_EXPIRES_IN:-7d}
+      COOKIE_SECURE:   "true"
+      COOKIE_SAME_SITE: strict
+      CORS_ORIGIN:     ${CORS_ORIGIN}
+      LOG_LEVEL:       warn
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - campus_net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ---------------------------------------------------------------------------
+  # MongoDB 7 — Production storage with authentication
+  # ---------------------------------------------------------------------------
+  mongodb:
+    image: mongo:7-jammy
+    container_name: campus_marketplace_mongo
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-cmadmin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    # Never expose MongoDB port on production host
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 15s
+      timeout:  5s
+      retries:  5
+      start_period: 30s
+    networks:
+      - campus_net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ---------------------------------------------------------------------------
+# Volumes
+# ---------------------------------------------------------------------------
+volumes:
+  mongo_data:
+    driver: local
+
+# ---------------------------------------------------------------------------
+# Networks
+# ---------------------------------------------------------------------------
+networks:
+  campus_net:
+    driver: bridge

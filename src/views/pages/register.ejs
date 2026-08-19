@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" class="h-100">
+<%- include('../partials/head', { title }) %>
+<body class="d-flex flex-column h-100 cm-bg-auth">
+
+<main class="flex-grow-1 d-flex align-items-center py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-sm-9 col-md-7 col-lg-5">
+
+        <div class="text-center mb-4">
+          <a href="/" class="cm-brand text-decoration-none d-inline-flex align-items-center justify-content-center mb-3">
+            <i class="bi bi-shop me-2"></i>CampusMarket
+          </a>
+          <h1 class="cm-auth-title">Create your account</h1>
+          <p class="text-muted">Join your campus marketplace</p>
+        </div>
+
+        <div id="authAlert" class="alert d-none" role="alert"></div>
+
+        <div class="cm-auth-card">
+          <form id="registerForm" novalidate>
+
+            <div class="mb-3">
+              <label for="name" class="form-label fw-medium">Full name</label>
+              <input
+                type="text"
+                class="form-control cm-form-control"
+                id="name"
+                name="name"
+                placeholder="Your full name"
+                autocomplete="name"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="email" class="form-label fw-medium">Email address</label>
+              <input
+                type="email"
+                class="form-control cm-form-control"
+                id="email"
+                name="email"
+                placeholder="you@college.edu"
+                autocomplete="email"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="college" class="form-label fw-medium">College / Institution <span class="text-muted">(optional)</span></label>
+              <input
+                type="text"
+                class="form-control cm-form-control"
+                id="college"
+                name="college"
+                placeholder="e.g. IIT Bombay"
+                autocomplete="organization"
+              />
+            </div>
+
+            <div class="mb-4">
+              <label for="password" class="form-label fw-medium">Password</label>
+              <div class="input-group">
+                <input
+                  type="password"
+                  class="form-control cm-form-control"
+                  id="password"
+                  name="password"
+                  placeholder="At least 8 characters"
+                  autocomplete="new-password"
+                  required
+                />
+                <button
+                  class="btn btn-outline-secondary cm-toggle-pw"
+                  type="button"
+                  id="togglePassword"
+                  aria-label="Show password"
+                >
+                  <i class="bi bi-eye" id="eyeIcon"></i>
+                </button>
+              </div>
+              <div class="form-text">Minimum 8 characters.</div>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn cm-btn-primary" id="registerBtn">
+                Create Account
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <p class="text-center mt-4 text-muted">
+          Already have an account?
+          <a href="/login" class="cm-link fw-medium">Sign in</a>
+        </p>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmVwGS0h2VbFfBzJlDa/K/VOh4v"
+  crossorigin="anonymous"
+></script>
+<script src="/js/auth.js"></script>
+
+</body>
+</html>

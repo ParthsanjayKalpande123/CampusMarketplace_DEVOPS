@@ -1,0 +1,80 @@
+# =============================================================================
+# docker-compose.yml — Local Development
+#
+# Services:
+#   app     — Campus Marketplace Node.js container (built from local Dockerfile)
+#   mongodb — MongoDB 7 container with persistent named volume
+#
+# Usage:
+#   Start:   docker compose up --build
+#   Stop:    docker compose down
+#   Logs:    docker compose logs -f app
+#   DB:      docker compose exec mongodb mongosh campus_marketplace
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Application — Campus Marketplace
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      target: production
+    container_name: campus_marketplace_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV:        development
+      PORT:            3000
+      # MongoDB service hostname matches the service name below
+      MONGODB_URI:     mongodb://mongodb:27017/campus_marketplace
+      # Override JWT_SECRET for local dev — ALWAYS change in production
+      JWT_SECRET:      ${JWT_SECRET:-local_dev_secret_replace_before_production_32ch}
+      JWT_EXPIRES_IN:  ${JWT_EXPIRES_IN:-7d}
+      COOKIE_SECURE:   "false"
+      COOKIE_SAME_SITE: lax
+      CORS_ORIGIN:     ${CORS_ORIGIN:-http://localhost:3000}
+      LOG_LEVEL:       ${LOG_LEVEL:-info}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - campus_net
+    # Named volumes are not used for the app (stateless by design — LOCK-4)
+
+  # ---------------------------------------------------------------------------
+  # MongoDB 7 — Persistent storage
+  # ---------------------------------------------------------------------------
+  mongodb:
+    image: mongo:7-jammy
+    container_name: campus_marketplace_mongo
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    # No ports exposed externally — app accesses via internal network only
+    # Uncomment the next line ONLY for local debugging:
+    # ports: ["27017:27017"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+      start_period: 20s
+    networks:
+      - campus_net
+
+# ---------------------------------------------------------------------------
+# Volumes
+# ---------------------------------------------------------------------------
+volumes:
+  mongo_data:
+    driver: local
+
+# ---------------------------------------------------------------------------
+# Networks
+# ---------------------------------------------------------------------------
+networks:
+  campus_net:
+    driver: bridge
