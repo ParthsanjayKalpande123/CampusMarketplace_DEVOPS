@@ -56,7 +56,7 @@ async function login(req, res, next) {
     // Set JWT in HTTP-only cookie — never exposed to JavaScript
     res.cookie('token', token, {
       httpOnly: true,
-      secure: config.cookie.secure,       // true in production (HTTPS)
+      secure: config.cookie.secure && req.protocol === 'https',
       sameSite: config.cookie.sameSite,   // 'lax' in development
       maxAge: config.cookie.maxAge,       // 7 days in ms
     });
@@ -78,7 +78,7 @@ function logout(req, res, next) {
   try {
     res.clearCookie('token', {
       httpOnly: true,
-      secure: config.cookie.secure,
+      secure: config.cookie.secure && req.protocol === 'https',
       sameSite: config.cookie.sameSite,
     });
 
