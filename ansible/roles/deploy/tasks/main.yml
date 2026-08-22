@@ -71,13 +71,18 @@
 # Step 3 — ECR authentication
 # ---------------------------------------------------------------------------
 
+- name: Verify EC2 instance identity for ECR access
+  ansible.builtin.command: aws sts get-caller-identity
+  become_user: ec2-user
+  changed_when: false
+  tags: deploy
+
 - name: Authenticate Docker to Amazon ECR
   ansible.builtin.shell: |
     aws ecr get-login-password --region {{ aws_region }} | \
     docker login --username AWS --password-stdin {{ ecr_registry }}
   become_user: ec2-user
   changed_when: true   # Always re-auth (ECR tokens expire after 12h)
-  no_log: true
   tags: deploy
 
 # ---------------------------------------------------------------------------
