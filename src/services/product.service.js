@@ -71,6 +71,7 @@ async function getProducts(query = {}) {
     condition,
     minPrice,
     maxPrice,
+    college,
     page      = 1,
     limit     = 20,
     sortBy    = 'createdAt',
@@ -90,6 +91,14 @@ async function getProducts(query = {}) {
 
   if (category) filter.category = category;
   if (condition) filter.condition = condition;
+
+  if (college && typeof college === 'string' && college.trim()) {
+    const escapedCollege = college.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const User = require('../models/User');
+    const sellers = await User.find({ college: { $regex: escapedCollege, $options: 'i' } }).select('_id');
+    const sellerIds = sellers.map(s => s._id);
+    filter.seller = { $in: sellerIds };
+  }
 
   if (minPrice !== undefined || maxPrice !== undefined) {
     filter.price = {};

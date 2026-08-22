@@ -22,6 +22,7 @@ const productRoutes  = require('./product.routes');
 const categoryRoutes = require('./category.routes');
 const reportRoutes   = require('./report.routes');
 const adminRoutes    = require('./admin.routes');
+const messageRoutes  = require('./message.routes');
 
 const router = Router();
 
@@ -36,6 +37,9 @@ router.use('/users', userRoutes);
 router.use('/products',   productRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/reports',    reportRoutes);
+
+// Messaging
+router.use('/messages', messageRoutes);
 
 // Phase 6 — Admin
 router.use('/admin', adminRoutes);

@@ -27,6 +27,7 @@
       <% if (query.condition) { %><input type="hidden" name="condition" value="<%= query.condition %>" /><% } %>
       <% if (query.minPrice)  { %><input type="hidden" name="minPrice"  value="<%= query.minPrice  %>" /><% } %>
       <% if (query.maxPrice)  { %><input type="hidden" name="maxPrice"  value="<%= query.maxPrice  %>" /><% } %>
+      <% if (query.college)   { %><input type="hidden" name="college"   value="<%= query.college   %>" /><% } %>
     </form>
   </div>
 </section>
@@ -98,6 +99,18 @@
               <% }); %>
             </div>
 
+            <!-- College -->
+            <div class="mb-4">
+              <h3 class="cm-filter-section-title">College / School</h3>
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                name="college"
+                placeholder="Search college name..."
+                value="<%= query.college || '' %>"
+              />
+            </div>
+
             <!-- Price Range -->
             <div class="mb-4">
               <h3 class="cm-filter-section-title">Price Range (Rs.)</h3>
@@ -150,6 +163,7 @@
             <% if (query.condition){ %><input type="hidden" name="condition"  value="<%= query.condition %>" /><% } %>
             <% if (query.minPrice) { %><input type="hidden" name="minPrice"   value="<%= query.minPrice %>" /><% } %>
             <% if (query.maxPrice) { %><input type="hidden" name="maxPrice"   value="<%= query.maxPrice %>" /><% } %>
+            <% if (query.college)  { %><input type="hidden" name="college"    value="<%= query.college %>" /><% } %>
             <label class="text-muted small mb-0 text-nowrap" for="sortBySelect">Sort by</label>
             <select id="sortBySelect" name="sortBy" class="form-select form-select-sm cm-sort-select" onchange="this.form.submit()">
               <option value="createdAt" <%= (query.sortBy || 'createdAt') === 'createdAt' ? 'selected' : '' %>>Newest</option>
@@ -211,7 +225,7 @@
 <!-- Bootstrap 5 JS -->
 <script
   src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-  integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmVwGS0h2VbFfBzJlDa/K/VOh4v"
+  integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
   crossorigin="anonymous"
 ></script>
 <script src="/js/main.js"></script>

@@ -25,6 +25,8 @@ const productService  = require('../services/product.service');
 const categoryService = require('../services/category.service');
 const adminService    = require('../services/admin.service');
 const reportService   = require('../services/report.service');
+const messageService  = require('../services/message.service');
+const User            = require('../models/User');
 const { NotFoundError, AuthorizationError } = require('../utils/errors');
 
 const router = Router();
@@ -111,6 +113,43 @@ router.get('/profile', requireAuth, (req, res) => {
   return res.render('pages/profile', {
     title: 'My Profile — Campus Marketplace',
   });
+});
+
+// ------------------------------------------------------------------
+// GET /inbox — In-App Chat Dashboard (auth required)
+// ------------------------------------------------------------------
+router.get('/inbox', requireAuth, async (req, res, next) => {
+  try {
+    const conversations = await messageService.getConversations(req.user._id);
+    let activeChatUser = null;
+    let activeProduct  = null;
+    let messages       = [];
+
+    const { userId, productId } = req.query;
+
+    if (userId) {
+      if (mongoose.Types.ObjectId.isValid(userId)) {
+        activeChatUser = await User.findById(userId).lean();
+      }
+      if (productId && mongoose.Types.ObjectId.isValid(productId)) {
+        activeProduct = await productService.getProductById(productId);
+      }
+      if (activeChatUser) {
+        messages = await messageService.getChatHistory(req.user._id, userId);
+      }
+    }
+
+    return res.render('pages/inbox', {
+      title: 'Inbox — Campus Marketplace',
+      conversations,
+      activeChatUser,
+      activeProduct,
+      messages,
+      query: req.query,
+    });
+  } catch (err) {
+    return next(err);
+  }
 });
 
 // ------------------------------------------------------------------
