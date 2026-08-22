@@ -83,6 +83,7 @@
     docker login --username AWS --password-stdin {{ ecr_registry }}
   become_user: ec2-user
   changed_when: true   # Always re-auth (ECR tokens expire after 12h)
+  no_log: true
   tags: deploy
 
 # ---------------------------------------------------------------------------
