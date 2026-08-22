@@ -119,7 +119,6 @@ jobs:
       - name: Run Ansible deploy playbook
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
-          ANSIBLE_STDOUT_CALLBACK:   "yaml"
         run: |
           ansible-playbook ansible/playbook.yml \
             -i ansible/inventory/hosts.ini \
