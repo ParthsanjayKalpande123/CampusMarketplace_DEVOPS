@@ -51,8 +51,10 @@ app.use(
         fontSrc:     ["'self'", 'https://cdn.jsdelivr.net', 'https://fonts.gstatic.com'],
         imgSrc:      ["'self'", 'data:', 'https:'],
         connectSrc:  ["'self'"],
+        upgradeInsecureRequests: config.cookie.secure ? [] : null,
       },
     },
+    hsts: config.cookie.secure,
     crossOriginEmbedderPolicy: false,
   })
 );
