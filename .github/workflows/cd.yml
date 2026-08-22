@@ -45,10 +45,6 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
 
-    outputs:
-      image_tag:    ${{ steps.meta.outputs.tag }}
-      ecr_registry: ${{ steps.login-ecr.outputs.registry }}
-
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -104,6 +100,13 @@ jobs:
           python3 -m pip install --upgrade pip
           pip install ansible boto3 botocore
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
       - name: Write SSH private key
         run: |
           echo "${{ secrets.EC2_SSH_KEY }}" > /tmp/deploy_key.pem
@@ -120,12 +123,15 @@ jobs:
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
         run: |
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com"
+          IMAGE_TAG="${GITHUB_SHA::7}"
           ansible-playbook ansible/playbook.yml \
             -i ansible/inventory/hosts.ini \
             --extra-vars "\
-              ecr_registry=${{ needs.build-push.outputs.ecr_registry }} \
+              ecr_registry=${ECR_REGISTRY} \
               ecr_repository=${{ secrets.ECR_REPOSITORY }} \
-              image_tag=${{ needs.build-push.outputs.image_tag }} \
+              image_tag=${IMAGE_TAG} \
               aws_region=${{ secrets.AWS_REGION }} \
               jwt_secret='${{ secrets.JWT_SECRET }}' \
               mongodb_uri='${{ secrets.MONGODB_URI }}' \
