@@ -106,6 +106,7 @@
     set -a
     source {{ app_dir }}/.env
     set +a
+    docker compose -f {{ app_dir }}/docker-compose.prod.yml pull
     docker compose -f {{ app_dir }}/docker-compose.prod.yml \
       up -d --remove-orphans --pull never
   become_user: ec2-user
