@@ -22,7 +22,7 @@
 
         <!-- Login form -->
         <div class="cm-auth-card">
-          <form id="loginForm" novalidate>
+          <form id="loginForm" method="post" action="/api/v1/auth/login" novalidate>
             <input type="hidden" id="redirectUrl" value="<%= redirect %>" />
 
             <div class="mb-3">

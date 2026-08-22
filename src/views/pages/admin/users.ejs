@@ -24,7 +24,7 @@
           placeholder="Search by name or email"
           value="<%= query.q || '' %>"
         />
-        <select name="role" class="form-select cm-form-control" style="max-width:160px;" onchange="this.form.submit()">
+        <select name="role" class="form-select cm-form-control" style="max-width:160px;">
           <option value="" <%= !query.role ? 'selected' : '' %>>All Roles</option>
           <option value="student" <%= query.role === 'student' ? 'selected' : '' %>>Student</option>
           <option value="admin"   <%= query.role === 'admin'   ? 'selected' : '' %>>Admin</option>

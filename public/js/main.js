@@ -57,6 +57,16 @@ if (logoutBtnProfile) {
   logoutBtnProfile.addEventListener('click', logout);
 }
 
+const autoSubmitSelects = document.querySelectorAll('form[method="GET"] select');
+autoSubmitSelects.forEach((select) => {
+  select.addEventListener('change', () => select.form.submit());
+});
+
+const goBackBtn = document.getElementById('goBackBtn');
+if (goBackBtn) {
+  goBackBtn.addEventListener('click', () => window.history.back());
+}
+
 /* ------------------------------------------------------------------
    Password visibility toggle (login + register pages)
    ------------------------------------------------------------------ */

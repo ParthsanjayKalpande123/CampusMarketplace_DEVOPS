@@ -165,7 +165,7 @@
             <% if (query.maxPrice) { %><input type="hidden" name="maxPrice"   value="<%= query.maxPrice %>" /><% } %>
             <% if (query.college)  { %><input type="hidden" name="college"    value="<%= query.college %>" /><% } %>
             <label class="text-muted small mb-0 text-nowrap" for="sortBySelect">Sort by</label>
-            <select id="sortBySelect" name="sortBy" class="form-select form-select-sm cm-sort-select" onchange="this.form.submit()">
+            <select id="sortBySelect" name="sortBy" class="form-select form-select-sm cm-sort-select">
               <option value="createdAt" <%= (query.sortBy || 'createdAt') === 'createdAt' ? 'selected' : '' %>>Newest</option>
               <option value="price"     <%= query.sortBy === 'price'     ? 'selected' : '' %>>Price: Low to High</option>
             </select>
