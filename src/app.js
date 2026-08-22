@@ -43,6 +43,7 @@ const app = express();
 app.use(
   helmet({
     contentSecurityPolicy: {
+      useDefaults: false,
       directives: {
         defaultSrc:  ["'self'"],
         // Bootstrap 5 + Google Fonts (CDN)
@@ -51,7 +52,6 @@ app.use(
         fontSrc:     ["'self'", 'https://cdn.jsdelivr.net', 'https://fonts.gstatic.com'],
         imgSrc:      ["'self'", 'data:', 'https:'],
         connectSrc:  ["'self'"],
-        upgradeInsecureRequests: config.cookie.secure ? [] : null,
       },
     },
     hsts: config.cookie.secure,
