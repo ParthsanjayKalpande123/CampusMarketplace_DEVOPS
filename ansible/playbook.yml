@@ -32,6 +32,15 @@
     app_port:        3000
     mongo_root_user: cmadmin
 
+  pre_tasks:
+    - name: Wait for EC2 SSH connection
+      ansible.builtin.wait_for_connection:
+        timeout: 60
+        sleep: 5
+        connect_timeout: 10
+      become: false
+      tags: always
+
   roles:
     - common
     - deploy
