@@ -25,7 +25,7 @@
 - name: Campus Marketplace — Production Deployment
   hosts: campus_marketplace
   become: true             # sudo for system operations
-  gather_facts: true
+  gather_facts: false
 
   vars:
     app_dir:         /opt/campus-marketplace
@@ -35,10 +35,14 @@
   pre_tasks:
     - name: Wait for EC2 SSH connection
       ansible.builtin.wait_for_connection:
-        timeout: 60
+        timeout: 180
         sleep: 5
         connect_timeout: 10
       become: false
+      tags: always
+
+    - name: Gather host facts after SSH is ready
+      ansible.builtin.setup:
       tags: always
 
   roles:
