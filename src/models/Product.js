@@ -16,7 +16,7 @@
 const { Schema, model, Types } = require('mongoose');
 
 const CONDITION_VALUES = ['new', 'like-new', 'good', 'fair', 'poor'];
-const STATUS_VALUES    = ['available', 'sold', 'exchanged', 'inactive'];
+const STATUS_VALUES    = ['available', 'sold', 'exchanged', 'inactive', 'removed'];
 
 const productSchema = new Schema(
   {

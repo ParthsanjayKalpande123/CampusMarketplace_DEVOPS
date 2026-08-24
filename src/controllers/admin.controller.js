@@ -116,4 +116,13 @@ async function removeProduct(req, res, next) {
   }
 }
 
-module.exports = { getStats, getUsers, updateUserRole, getReports, updateReportStatus, getProducts, removeProduct };
+async function createProduct(req, res, next) {
+  try {
+    const product = await adminService.createProduct(req.user._id, req.body);
+    return apiResponse.created(res, { product }, 'Listing created successfully.');
+  } catch (err) {
+    return next(err);
+  }
+}
+
+module.exports = { getStats, getUsers, updateUserRole, getReports, updateReportStatus, getProducts, removeProduct, createProduct };

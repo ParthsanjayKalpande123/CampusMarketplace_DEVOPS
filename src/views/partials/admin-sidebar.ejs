@@ -1,5 +1,6 @@
 <%# src/views/partials/admin-sidebar.ejs %>
-<%# Requires: currentPath — set by setLocals %>
+<%# Requires: currentPath — set by setLocals; adminBase is '' on the dedicated admin port %>
+<% const adminRoot = typeof adminBase !== 'undefined' ? adminBase : '/admin'; %>
 <nav class="cm-admin-sidebar d-flex flex-column">
   <div class="cm-admin-brand px-4 py-3 border-bottom">
     <a href="/" class="cm-brand text-decoration-none d-flex align-items-center gap-2">
@@ -12,34 +13,25 @@
     <p class="cm-sidebar-label px-2 mb-2">Management</p>
     <ul class="list-unstyled mb-0">
       <li class="mb-1">
-        <a href="/admin/dashboard"
-          class="cm-sidebar-link <%= currentPath === '/admin/dashboard' ? 'active' : '' %>">
+        <a href="<%= adminRoot %>/dashboard"
+          class="cm-sidebar-link <%= currentPath === '/admin/dashboard' || currentPath === '/dashboard' ? 'active' : '' %>">
           <i class="bi bi-grid me-2"></i>Dashboard
         </a>
       </li>
       <li class="mb-1">
-        <a href="/admin/users"
+        <a href="<%= adminRoot %>/users"
           class="cm-sidebar-link <%= currentPath === '/admin/users' ? 'active' : '' %>">
           <i class="bi bi-people me-2"></i>Users
         </a>
       </li>
       <li class="mb-1">
-        <a href="/admin/reports"
+        <a href="<%= adminRoot %>/reports"
           class="cm-sidebar-link <%= currentPath === '/admin/reports' ? 'active' : '' %>">
           <i class="bi bi-flag me-2"></i>Reports
         </a>
       </li>
     </ul>
 
-    <hr class="my-3" />
-    <p class="cm-sidebar-label px-2 mb-2">Marketplace</p>
-    <ul class="list-unstyled mb-0">
-      <li class="mb-1">
-        <a href="/" class="cm-sidebar-link">
-          <i class="bi bi-shop me-2"></i>View Marketplace
-        </a>
-      </li>
-    </ul>
   </div>
 
   <div class="px-3 py-3 border-top">

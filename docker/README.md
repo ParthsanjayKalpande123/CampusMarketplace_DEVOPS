@@ -9,6 +9,7 @@ Implemented in **Phase 7**.
 - Working directory: `/app`
 - Non-root user: `node`
 - Port exposed: `3000`
+- Dedicated admin dashboard port: `3001`
 - Configuration: environment variables only
 - HEALTHCHECK: `GET /api/v1/health`
 

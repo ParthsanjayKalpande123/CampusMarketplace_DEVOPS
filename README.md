@@ -120,6 +120,7 @@ Copy `.env.example` to `.env` and configure the following:
 |----------|----------|-------------|
 | `NODE_ENV` | No | development \| test \| production |
 | `PORT` | No | HTTP port (default: 3000) |
+| `ADMIN_PORT` | No | Dedicated admin dashboard port (default: 3001) |
 | `MONGODB_URI` | Yes | Full MongoDB connection string |
 | `JWT_SECRET` | Yes | Long random string for JWT signing |
 | `JWT_EXPIRES_IN` | No | Token expiry (default: 7d) |

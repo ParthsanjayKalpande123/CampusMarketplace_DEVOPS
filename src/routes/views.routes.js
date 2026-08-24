@@ -221,10 +221,14 @@ router.get('/admin', requireAuth, requireAdmin, (req, res) => res.redirect('/adm
 // ------------------------------------------------------------------
 router.get('/admin/dashboard', requireAuth, requireAdmin, async (req, res, next) => {
   try {
-    const stats = await adminService.getStats();
+    const [stats, categories] = await Promise.all([
+      adminService.getStats(),
+      categoryService.getActiveCategories(),
+    ]);
     return res.render('pages/admin/dashboard', {
       title: 'Admin Dashboard — Campus Marketplace',
       stats,
+      categories,
     });
   } catch (err) {
     return next(err);

@@ -86,12 +86,21 @@ app.use(requestLogger);
 // ------------------------------------------------------------------
 // 5. Global rate limiter
 // ------------------------------------------------------------------
+const isLocalDevRequest = (req) => {
+  const clientIp = req.ip || req.socket?.remoteAddress || '';
+  return (
+    config.isDevelopment &&
+    (req.hostname === 'localhost' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1' || clientIp === '127.0.0.1')
+  );
+};
+
 const globalLimiter = rateLimit({
   windowMs:       15 * 60 * 1000,
-  max:            300,
+  max:            config.isDevelopment ? 2000 : 300,
   standardHeaders: true,
   legacyHeaders:  false,
   skip:           (req) => config.isTest ||
+                           isLocalDevRequest(req) ||
                            req.path === '/api/v1/health' ||
                            req.path === '/api/v1/ready',
   message: {

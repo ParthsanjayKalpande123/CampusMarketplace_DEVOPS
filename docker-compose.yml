@@ -25,9 +25,11 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+      - "3001:3001"
     environment:
       NODE_ENV:        development
       PORT:            3000
+      ADMIN_PORT:      3001
       # MongoDB service hostname matches the service name below
       MONGODB_URI:     mongodb://mongodb:27017/campus_marketplace
       # Override JWT_SECRET for local dev — ALWAYS change in production

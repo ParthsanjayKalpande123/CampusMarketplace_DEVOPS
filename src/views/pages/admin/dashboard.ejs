@@ -18,6 +18,24 @@
 
     <div class="p-4">
 
+      <div id="adminAlert" class="alert d-none" role="alert"></div>
+
+        <div class="cm-admin-card-header d-flex justify-content-between align-items-center">
+          <h2 class="cm-admin-card-title mb-0">Add Listing</h2>
+          <span class="text-muted small">Created under your admin account</span>
+        </div>
+        <form id="adminListingForm" class="p-3">
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label" for="adminTitle">Title</label><input class="form-control" id="adminTitle" required minlength="3" maxlength="200"></div>
+            <div class="col-md-3"><label class="form-label" for="adminPrice">Price (Rs.)</label><input class="form-control" id="adminPrice" type="number" min="0" max="999999" required></div>
+            <div class="col-md-8"><label class="form-label" for="adminDescription">Description</label><textarea class="form-control" id="adminDescription" minlength="10" maxlength="2000" required></textarea></div>
+            <div class="col-md-2"><label class="form-label" for="adminCondition">Condition</label><select class="form-select" id="adminCondition" required><option value="new">New</option><option value="like-new">Like New</option><option value="good" selected>Good</option><option value="fair">Fair</option><option value="poor">Poor</option></select></div>
+            <div class="col-md-2"><label class="form-label" for="adminLocation">Location</label><input class="form-control" id="adminLocation" maxlength="200"></div>
+          </div>
+          <button class="btn cm-btn-primary mt-3" type="submit"><i class="bi bi-plus-lg me-1"></i>Create Listing</button>
+        </form>
+      </div>
+
       <!-- ── Stat cards ──────────────────────────────────────────── -->
       <div class="row g-3 mb-5">
         <div class="col-6 col-lg-3">
@@ -52,6 +70,24 @@
 
       <div class="row g-4">
 
+        <div class="col-12 col-xl-5">
+          <div class="cm-admin-card h-100">
+            <div class="cm-admin-card-header"><h2 class="cm-admin-card-title mb-0">Listings by Location</h2></div>
+            <% if (stats.listingsByLocation.length === 0) { %><p class="text-muted p-3 mb-0">No location data yet.</p><% } else { %>
+              <div class="table-responsive"><table class="table cm-listings-table mb-0"><thead><tr><th>Location</th><th class="text-end">Listings</th></tr></thead><tbody><% stats.listingsByLocation.forEach(function(item) { %><tr><td><%= item._id %></td><td class="text-end fw-semibold"><%= item.count %></td></tr><% }); %></tbody></table></div>
+            <% } %>
+          </div>
+        </div>
+
+        <div class="col-12 col-xl-7">
+          <div class="cm-admin-card h-100">
+            <div class="cm-admin-card-header d-flex justify-content-between align-items-center"><h2 class="cm-admin-card-title mb-0">Pending Reports</h2><a href="/reports?status=pending" class="btn btn-sm btn-light">View all</a></div>
+            <% if (stats.recentReports.length === 0) { %><p class="text-muted p-3 mb-0">No pending reports.</p><% } else { %>
+              <div class="table-responsive"><table class="table cm-listings-table mb-0"><thead><tr><th>Listing</th><th>Reason</th><th class="text-end">Action</th></tr></thead><tbody><% stats.recentReports.forEach(function(r) { %><tr id="dashboard-report-<%= r._id %>"><td><%= r.product ? r.product.title : 'Deleted listing' %></td><td><%= r.reason %></td><td class="text-end"><% if (r.product) { %><button class="btn btn-sm btn-outline-danger me-1" data-dashboard-delete="<%= r.product._id %>" data-report-id="<%= r._id %>">Delete</button><% } %><button class="btn btn-sm btn-outline-success" data-dashboard-keep="<%= r._id %>">Keep</button></td></tr><% }); %></tbody></table></div>
+            <% } %>
+          </div>
+        </div>
+
         <!-- ── Recent Listings ──────────────────────────────────── -->
         <div class="col-12 col-xl-7">
           <div class="cm-admin-card">
@@ -65,14 +101,14 @@
               <div class="table-responsive">
                 <table class="table cm-listings-table mb-0">
                   <thead><tr>
-                    <th>Title</th><th>Seller</th><th>Price</th><th>Status</th>
+                    <th>Title</th><th>Seller</th><th>Price</th><th>Status</th><th class="text-end">Action</th>
                   </tr></thead>
                   <tbody>
                     <% stats.recentProducts.forEach(function(p) { %>
                       <%
                         const sMap = {available:'badge-available',sold:'badge-sold',exchanged:'badge-exchanged',inactive:'badge-inactive'};
                       %>
-                      <tr>
+                      <tr id="dashboard-listing-<%= p._id %>">
                         <td><a href="/listings/<%= p._id %>" class="cm-link fw-medium">
                           <%= p.title.length > 40 ? p.title.substring(0,37)+'...' : p.title %>
                         </a></td>
@@ -81,6 +117,7 @@
                         <td><span class="cm-status-badge <%= sMap[p.status] || 'badge-inactive' %>">
                           <%= p.status.charAt(0).toUpperCase() + p.status.slice(1) %>
                         </span></td>
+                        <td class="text-end"><button class="btn btn-sm btn-outline-danger" type="button" data-admin-delete="<%= p._id %>">Delete</button></td>
                       </tr>
                     <% }); %>
                   </tbody>
@@ -95,7 +132,7 @@
           <div class="cm-admin-card">
             <div class="cm-admin-card-header d-flex justify-content-between align-items-center">
               <h2 class="cm-admin-card-title mb-0">Recent Users</h2>
-              <a href="/admin/users" class="btn btn-sm btn-light">View all</a>
+              <a href="/users" class="btn btn-sm btn-light">View all</a>
             </div>
             <% if (stats.recentUsers.length === 0) { %>
               <p class="text-muted p-3 mb-0">No users yet.</p>
@@ -134,6 +171,45 @@
 <script>
   const ab = document.getElementById('adminLogoutBtn');
   if (ab) ab.addEventListener('click', window.CampusMarket.logout);
+
+  const adminApi = '/api/v1/admin';
+  const adminAlert = (message, type = 'success') => {
+    const alert = document.getElementById('adminAlert');
+    alert.className = `alert alert-${type}`;
+    alert.textContent = message;
+  };
+  document.getElementById('adminListingForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const payload = {
+      title: document.getElementById('adminTitle').value,
+      description: document.getElementById('adminDescription').value,
+      category: document.getElementById('adminCategory').value,
+      price: document.getElementById('adminPrice').value,
+      condition: document.getElementById('adminCondition').value,
+      location: document.getElementById('adminLocation').value,
+    };
+    const response = await fetch(`${adminApi}/products`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    if (response.ok) { form.reset(); adminAlert('Listing created successfully.'); } else { const body = await response.json(); adminAlert(body.error?.message || 'Could not create listing.', 'danger'); }
+  });
+  document.querySelectorAll('[data-dashboard-keep]').forEach((button) => button.addEventListener('click', async () => {
+    const response = await fetch(`${adminApi}/reports/${button.dataset.dashboardKeep}/status`, { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'resolved' }) });
+    if (response.ok) document.getElementById(`dashboard-report-${button.dataset.dashboardKeep}`).remove(); else adminAlert('Could not update report.', 'danger');
+  }));
+  document.querySelectorAll('[data-dashboard-delete]').forEach((button) => button.addEventListener('click', async () => {
+    const response = await fetch(`${adminApi}/products/${button.dataset.dashboardDelete}`, { method: 'DELETE', credentials: 'same-origin' });
+    if (!response.ok) { adminAlert('Could not delete listing.', 'danger'); return; }
+    await fetch(`${adminApi}/reports/${button.dataset.reportId}/status`, { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'resolved' }) });
+    document.getElementById(`dashboard-report-${button.dataset.reportId}`).remove();
+  }));
+  document.querySelectorAll('[data-admin-delete]').forEach((button) => button.addEventListener('click', async () => {
+    if (!window.confirm('Delete this listing permanently?')) return;
+    button.disabled = true;
+    const response = await fetch(`${adminApi}/products/${button.dataset.adminDelete}`, { method: 'DELETE', credentials: 'same-origin' });
+    if (!response.ok) { adminAlert('Could not delete listing.', 'danger'); button.disabled = false; return; }
+    document.getElementById(`dashboard-listing-${button.dataset.adminDelete}`).remove();
+    adminAlert('Listing deleted successfully.');
+  }));
 </script>
 </body>
 </html>

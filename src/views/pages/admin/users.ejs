@@ -15,7 +15,7 @@
     <div class="p-4">
 
       <!-- Search + Filter -->
-      <form action="/admin/users" method="GET" class="d-flex flex-wrap gap-2 mb-4">
+      <form action="/users" method="GET" class="d-flex flex-wrap gap-2 mb-4">
         <input
           type="search"
           name="q"
@@ -30,7 +30,7 @@
           <option value="admin"   <%= query.role === 'admin'   ? 'selected' : '' %>>Admin</option>
         </select>
         <button class="btn cm-btn-primary" type="submit">Search</button>
-        <a href="/admin/users" class="btn btn-light">Clear</a>
+        <a href="/users" class="btn btn-light">Clear</a>
       </form>
 
       <div id="usersAlert" class="alert d-none"></div>

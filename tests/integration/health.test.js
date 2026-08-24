@@ -22,6 +22,32 @@ const mongoose = require('mongoose');
 const app = require('../../src/app');
 
 describe('Health Endpoints', () => {
+  describe('Development local requests', () => {
+    it('should not throttle local development requests with a 429 during normal bursts', async () => {
+      jest.resetModules();
+
+      process.env.NODE_ENV = 'development';
+      process.env.MONGODB_URI = 'mongodb://localhost:27017/campus_marketplace_dev';
+      process.env.JWT_SECRET = 'development-test-jwt-secret-long-enough-32chars';
+      process.env.JWT_EXPIRES_IN = '1h';
+      process.env.COOKIE_SECURE = 'false';
+      process.env.LOG_LEVEL = 'error';
+
+      const devApp = require('../../src/app');
+
+      for (let i = 0; i < 350; i += 1) {
+        const res = await request(devApp).get('/login');
+        if (res.status === 429) {
+          expect(res.status).not.toBe(429);
+          return;
+        }
+      }
+
+      const res = await request(devApp).get('/login');
+      expect(res.status).not.toBe(429);
+    });
+  });
+
   // ------------------------------------------------------------------
   // GET /api/v1/health — Liveness probe
   // ------------------------------------------------------------------

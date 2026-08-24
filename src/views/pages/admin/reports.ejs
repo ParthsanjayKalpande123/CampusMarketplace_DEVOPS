@@ -15,14 +15,14 @@
     <div class="p-4">
 
       <!-- Filter -->
-      <form action="/admin/reports" method="GET" class="d-flex flex-wrap gap-2 mb-4">
+      <form action="/reports" method="GET" class="d-flex flex-wrap gap-2 mb-4">
         <select name="status" class="form-select cm-form-control" style="max-width:180px;">
           <option value="" <%= !query.status ? 'selected' : '' %>>All Statuses</option>
           <option value="pending"  <%= query.status === 'pending'  ? 'selected' : '' %>>Pending</option>
           <option value="reviewed" <%= query.status === 'reviewed' ? 'selected' : '' %>>Reviewed</option>
           <option value="resolved" <%= query.status === 'resolved' ? 'selected' : '' %>>Resolved</option>
         </select>
-        <a href="/admin/reports" class="btn btn-light">Clear</a>
+        <a href="/reports" class="btn btn-light">Clear</a>
       </form>
 
       <div id="reportsAlert" class="alert d-none"></div>

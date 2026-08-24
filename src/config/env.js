@@ -60,6 +60,7 @@ const config = {
 
   /** HTTP port the Express server listens on */
   port: parseInt(process.env.PORT, 10) || 3000,
+  adminPort: parseInt(process.env.ADMIN_PORT, 10) || 3001,
 
   app: {
     name: process.env.APP_NAME || 'Campus Marketplace',

@@ -38,11 +38,17 @@ function hideAlert(containerId) {
 
 async function logout() {
   try {
-    await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin' });
+    await fetch('/api/v1/auth/logout', {
+      method: 'POST',
+      credentials: 'same-origin',
+    });
   } catch {
     // best-effort
   }
-  window.location.href = '/';
+  const marketplaceOrigin = window.location.port === '3001'
+    ? `${window.location.protocol}//${window.location.hostname}:3000`
+    : '';
+  window.location.href = `${marketplaceOrigin}/`;
 }
 
 // Navbar logout button

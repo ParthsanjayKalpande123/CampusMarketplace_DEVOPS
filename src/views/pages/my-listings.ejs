@@ -80,6 +80,7 @@
                   'sold':      'badge-sold',
                   'exchanged': 'badge-exchanged',
                   'inactive':  'badge-inactive',
+                  'removed':   'badge-danger',
                 };
                 const listedDate = new Date(product.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
               %>
@@ -96,15 +97,20 @@
                 <td><span class="text-muted"><%= condMap[product.condition] || product.condition %></span></td>
                 <td>
                   <span class="cm-status-badge <%= statusMap[product.status] || 'badge-inactive' %>">
-                    <%= product.status.charAt(0).toUpperCase() + product.status.slice(1) %>
+                    <%= product.status === 'removed' ? 'Removed by Admin' : product.status.charAt(0).toUpperCase() + product.status.slice(1) %>
                   </span>
+                  <% if (product.status === 'removed') { %>
+                    <br/><span class="text-danger small">This listing was removed by an administrator.</span>
+                  <% } %>
                 </td>
                 <td class="text-muted small"><%= listedDate %></td>
                 <td class="text-end">
                   <div class="d-flex justify-content-end gap-2 flex-wrap">
-                    <a href="/listings/<%= product._id %>/edit" class="btn btn-sm btn-light">
-                      <i class="bi bi-pencil"></i>
-                    </a>
+                    <% if (product.status !== 'removed') { %>
+                      <a href="/listings/<%= product._id %>/edit" class="btn btn-sm btn-light">
+                        <i class="bi bi-pencil"></i>
+                      </a>
+                    <% } %>
                     <% if (product.status === 'available') { %>
                       <button
                         class="btn btn-sm btn-outline-success"
@@ -129,12 +135,14 @@
                         data-status="available"
                       ><i class="bi bi-play-circle"></i></button>
                     <% } %>
-                    <button
-                      class="btn btn-sm btn-outline-danger"
-                      title="Delete"
-                      data-action="delete-product"
-                      data-product-id="<%= product._id %>"
-                    ><i class="bi bi-trash"></i></button>
+                    <% if (product.status !== 'removed') { %>
+                      <button
+                        class="btn btn-sm btn-outline-danger"
+                        title="Delete"
+                        data-action="delete-product"
+                        data-product-id="<%= product._id %>"
+                      ><i class="bi bi-trash"></i></button>
+                    <% } %>
                   </div>
                 </td>
               </tr>

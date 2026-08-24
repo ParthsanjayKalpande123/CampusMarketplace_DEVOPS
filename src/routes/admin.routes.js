@@ -26,6 +26,7 @@ const {
 const { validate }    = require('../middleware/validation.middleware');
 const { verifyToken } = require('../middleware/auth.middleware');
 const { isAdmin }     = require('../middleware/admin.middleware');
+const { createProductRules } = require('../validators/product.validator');
 
 const router = Router();
 
@@ -57,6 +58,7 @@ router.patch(
 
 /* ---- Products ------------------------------------------------------ */
 router.get('/products', adminController.getProducts);
+router.post('/products', createProductRules, validate, adminController.createProduct);
 router.delete('/products/:id', adminController.removeProduct);
 
 module.exports = router;

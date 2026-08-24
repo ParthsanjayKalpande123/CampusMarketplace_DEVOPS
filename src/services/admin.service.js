@@ -36,6 +36,8 @@ async function getStats() {
     pendingReports,
     recentProducts,
     recentUsers,
+    recentReports,
+    listingsByLocation,
   ] = await Promise.all([
     User.countDocuments(),
     Product.countDocuments(),
@@ -53,6 +55,17 @@ async function getStats() {
       .limit(5)
       .select('-passwordHash')
       .lean(),
+    Report.find({ status: 'pending' })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('product', 'title status location')
+      .populate('reportedBy', 'name email')
+      .lean(),
+    Product.aggregate([
+      { $group: { _id: { $ifNull: ['$location', 'Unknown'] }, count: { $sum: 1 } } },
+      { $sort: { count: -1, _id: 1 } },
+      { $limit: 10 },
+    ]),
   ]);
 
   return {
@@ -63,7 +76,28 @@ async function getStats() {
     pendingReports,
     recentProducts,
     recentUsers,
+    recentReports,
+    listingsByLocation,
   };
+}
+
+async function createProduct(adminId, data) {
+  const Category = require('../models/Category');
+  const category = await Category.findById(data.category);
+  if (!category || !category.isActive) throw new NotFoundError('Category');
+
+  return Product.create({
+    title: data.title,
+    description: data.description,
+    category: data.category,
+    price: data.price,
+    condition: data.condition,
+    imageUrl: data.imageUrl || null,
+    location: data.location || null,
+    isExchangeable: data.isExchangeable || false,
+    seller: adminId,
+    status: 'available',
+  });
 }
 
 // ------------------------------------------------------------------
@@ -203,13 +237,18 @@ async function getAllProducts(query = {}) {
 }
 
 /**
- * Force-removes a product listing (admin override, no ownership check).
+ * Hides a product listing from the marketplace while retaining it so the
+ * seller can see that it was removed by an administrator.
  *
  * @param {string} productId
  * @throws {NotFoundError}
  */
 async function removeProduct(productId) {
-  const product = await Product.findByIdAndDelete(productId);
+  const product = await Product.findByIdAndUpdate(
+    productId,
+    { $set: { status: 'removed' } },
+    { new: true, runValidators: true }
+  );
   if (!product) throw new NotFoundError('Product');
 }
 
@@ -220,4 +259,5 @@ module.exports = {
   updateReportStatus,
   getAllProducts,
   removeProduct,
+  createProduct,
 };

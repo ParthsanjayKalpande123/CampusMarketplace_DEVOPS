@@ -34,9 +34,11 @@ const { config } = require('./config/env');
 const { connectDatabase, disconnectDatabase } = require('./config/database');
 const logger = require('./utils/logger');
 const app = require('./app');
+const adminApp = require('./admin-app');
 
 /** @type {import('http').Server} */
 let server;
+let adminServer;
 
 // ------------------------------------------------------------------
 // Server startup
@@ -63,6 +65,14 @@ async function startServer() {
         env: config.env,
         pid: process.pid,
         nodeVersion: process.version,
+      });
+    });
+
+    adminServer = adminApp.listen(config.adminPort, () => {
+      logger.info('Admin dashboard is running', {
+        port: config.adminPort,
+        env: config.env,
+        pid: process.pid,
       });
     });
 
@@ -105,6 +115,13 @@ async function gracefulShutdown(signal) {
         server.close((err) => (err ? reject(err) : resolve()));
       });
       logger.info('HTTP server closed');
+    }
+
+    if (adminServer) {
+      await new Promise((resolve, reject) => {
+        adminServer.close((err) => (err ? reject(err) : resolve()));
+      });
+      logger.info('Admin dashboard server closed');
     }
 
     // Close MongoDB connection.
