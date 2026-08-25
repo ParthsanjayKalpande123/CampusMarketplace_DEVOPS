@@ -30,6 +30,8 @@ services:
     image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG:-latest}
     container_name: campus_marketplace_app
     restart: unless-stopped
+    mem_limit: 400m
+    memswap_limit: 768m
     ports:
       - "3000:3000"
       - "3001:3001"
@@ -62,6 +64,8 @@ services:
     image: mongo:7-jammy
     container_name: campus_marketplace_mongo
     restart: unless-stopped
+    mem_limit: 450m
+    memswap_limit: 768m
     volumes:
       - mongo_data:/data/db
     environment:

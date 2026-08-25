@@ -8,6 +8,48 @@
 # =============================================================================
 
 # ---------------------------------------------------------------------------
+# Memory safety for small EC2 instances
+# ---------------------------------------------------------------------------
+
+- name: Check for deployment swap file
+  ansible.builtin.stat:
+    path: /swapfile
+  register: swapfile_stat
+  tags: memory
+
+- name: Create deployment swap file
+  ansible.builtin.command: fallocate -l 1G /swapfile
+  when: not swapfile_stat.stat.exists
+  tags: memory
+
+- name: Set deployment swap file permissions
+  ansible.builtin.file:
+    path: /swapfile
+    owner: root
+    group: root
+    mode: "0600"
+  tags: memory
+
+- name: Initialize deployment swap file
+  ansible.builtin.command: mkswap /swapfile
+  when: not swapfile_stat.stat.exists
+  tags: memory
+
+- name: Enable deployment swap file
+  ansible.builtin.command: swapon /swapfile
+  when: not swapfile_stat.stat.exists
+  tags: memory
+
+- name: Persist deployment swap file across reboots
+  ansible.builtin.mount:
+    path: none
+    src: /swapfile
+    fstype: swap
+    opts: sw
+    state: present
+  tags: memory
+
+# ---------------------------------------------------------------------------
 # Docker service
 # ---------------------------------------------------------------------------
 
