@@ -66,6 +66,12 @@ variable "app_port" {
   default     = 3000
 }
 
+variable "admin_port" {
+  description = "Port that the admin dashboard listens on."
+  type        = number
+  default     = 3001
+}
+
 # ---------------------------------------------------------------------------
 # ECR
 # ---------------------------------------------------------------------------

@@ -85,6 +85,15 @@ resource "aws_security_group" "app" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Admin dashboard port
+  ingress {
+    description = "Admin dashboard"
+    from_port   = var.admin_port
+    to_port     = var.admin_port
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # Allow all outbound (required for: ECR pulls, apt/dnf updates, MongoDB Atlas)
   egress {
     description = "Allow all outbound"

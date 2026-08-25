@@ -26,7 +26,8 @@ ec2_root_volume_size_gb = 20
 allowed_ssh_cidr = "0.0.0.0/0"
 
 # Application
-app_port = 3000
+app_port   = 3000
+admin_port = 3001
 
 # ECR image retention
 ecr_image_retention_count = 5
