@@ -22,12 +22,21 @@
 # Step 1 — Copy compose file and monitoring config to server
 # ---------------------------------------------------------------------------
 
+- name: Validate deployment slot
+  ansible.builtin.assert:
+    that:
+      - deploy_slot in ['blue', 'green']
+    fail_msg: "deploy_slot must be either blue or green."
+  when: not (teardown_only | default(false) | bool)
+  tags: deploy
+
 - name: Copy monitoring directory to server
   ansible.builtin.copy:
     src:   "{{ playbook_dir }}/../monitoring"
     dest:  "{{ app_dir }}/"
     owner: ec2-user
     group: ec2-user
+  when: not (teardown_only | default(false) | bool)
   tags: deploy
 
 - name: Copy docker-compose.prod.yml to server
@@ -37,6 +46,7 @@
     owner: ec2-user
     group: ec2-user
     mode:  "0644"
+  when: not (teardown_only | default(false) | bool)
   tags: deploy
 
 # ---------------------------------------------------------------------------
@@ -52,7 +62,8 @@
       IMAGE_TAG={{ image_tag }}
 
       NODE_ENV=production
-      PORT={{ app_port }}
+      PORT=3000
+      ADMIN_PORT=3001
 
       MONGODB_URI={{ mongodb_uri }}
 
@@ -73,6 +84,7 @@
     group: ec2-user
     mode:  "0600"   # Owner-read-only — secrets protection
   no_log: true       # Prevent secret values from appearing in Ansible output
+  when: not (teardown_only | default(false) | bool)
   tags: deploy
 
 # ---------------------------------------------------------------------------
@@ -83,6 +95,7 @@
   ansible.builtin.command: aws sts get-caller-identity
   become_user: ec2-user
   changed_when: false
+  when: not (teardown_only | default(false) | bool)
   tags: deploy
 
 - name: Authenticate Docker to Amazon ECR
@@ -92,17 +105,19 @@
   become_user: ec2-user
   changed_when: true   # Always re-auth (ECR tokens expire after 12h)
   no_log: true
+  when: not (teardown_only | default(false) | bool)
   tags: deploy
 
 # ---------------------------------------------------------------------------
 # Step 4 — Pull the new image
 # ---------------------------------------------------------------------------
 
-- name: Pull Docker image from ECR
+- name: Pull deployment image from ECR
   ansible.builtin.command: >
     docker pull {{ ecr_registry }}/{{ ecr_repository }}:{{ image_tag }}
   become_user: ec2-user
   changed_when: true
+  when: not (teardown_only | default(false) | bool)
   tags: deploy
 
 # ---------------------------------------------------------------------------
@@ -114,11 +129,14 @@
     set -a
     source {{ app_dir }}/.env
     set +a
-    docker compose -f {{ app_dir }}/docker-compose.prod.yml pull
+    docker compose -f {{ app_dir }}/docker-compose.prod.yml pull {{ 'app' if deploy_slot == 'blue' else 'app-green' }}
     docker compose -f {{ app_dir }}/docker-compose.prod.yml \
-      up -d --remove-orphans --pull never
+      up -d --pull never \
+      mongodb prometheus grafana elasticsearch logstash kibana filebeat \
+      {{ 'app' if deploy_slot == 'blue' else 'app-green' }}
   become_user: ec2-user
   changed_when: true
+  when: not (teardown_only | default(false) | bool)
   tags: deploy
 
 # ---------------------------------------------------------------------------
@@ -129,15 +147,16 @@
   ansible.builtin.command: docker image prune -f
   become_user: ec2-user
   changed_when: false
+  when: not (teardown_only | default(false) | bool)
   tags: deploy
 
 # ---------------------------------------------------------------------------
-# Step 7 — Health check (wait up to 60s for the app to become ready)
+# Step 7 — Health check (BLUE: 3000, GREEN: localhost-only 3002)
 # ---------------------------------------------------------------------------
 
 - name: Wait for application to become healthy
   ansible.builtin.uri:
-    url:            "http://localhost:{{ app_port }}/api/v1/health"
+    url:            "http://127.0.0.1:{{ app_port }}/api/v1/health"
     method:         GET
     status_code:    200
     timeout:        10
@@ -146,9 +165,34 @@
   retries:   6
   delay:     10
   until:     health_result.status == 200
+  when: not (teardown_only | default(false) | bool)
   tags: deploy
 
 - name: Display health check result
   ansible.builtin.debug:
     msg: "Health check passed — {{ health_result.json }}"
+  when: not (teardown_only | default(false) | bool)
+  tags: deploy
+
+- name: Stop GREEN after the promoted BLUE slot is healthy
+  ansible.builtin.command:
+    cmd: docker compose -f docker-compose.prod.yml stop app-green
+  become_user: ec2-user
+  args:
+    chdir: "{{ app_dir }}"
+  when:
+    - not (teardown_only | default(false) | bool)
+    - deploy_slot == 'blue'
+    - teardown_old_slot | default(false) | bool
+  tags: deploy
+
+- name: Stop a failed deployment slot during rollback
+  ansible.builtin.shell: |
+    container_name="{{ 'campus_marketplace_app' if deploy_slot == 'blue' else 'campus_marketplace_app_green' }}"
+    container_id=$(docker ps -q --filter name="$container_name")
+    if [ -n "$container_id" ]; then
+      docker stop "$container_name"
+    fi
+  become_user: ec2-user
+  when: teardown_only | default(false) | bool
   tags: deploy

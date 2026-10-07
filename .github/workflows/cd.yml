@@ -8,14 +8,14 @@
 #   1. test        — Calls ci.yml (reusable workflow). Gate for deployment.
 #   2. build-push  — Build Docker image, tag with git SHA + latest, push to ECR.
 #   3. deploy      — Blue-Green deployment via Ansible:
-#                    a) Deploy new image to GREEN slot (port 3002/3003)
-#                    b) Health-check GREEN — if pass, switch traffic to GREEN
-#                    c) Tear down BLUE slot (old version)
+#                    a) Deploy new image to GREEN on localhost:3002
+#                    b) Health-check GREEN while BLUE serves on :3000
+#                    c) Update BLUE and verify it before stopping GREEN
 #                    d) Rollback: if GREEN health-check fails, keep BLUE running
 #
 # Deployment Strategy: Blue-Green
-#   BLUE  slot → currently live (ports 3000/3001)
-#   GREEN slot → new version under test (ports 3002/3003)
+#   BLUE  slot → live application (ports 3000/3001)
+#   GREEN slot → isolated candidate (localhost:3002, not publicly exposed)
 #
 # Required GitHub Secrets:
 #   AWS_ACCESS_KEY_ID       — IAM user with ECR push and EC2 describe permissions
@@ -127,7 +127,7 @@ jobs:
           EOF
 
       # -----------------------------------------------------------------------
-      # Blue-Green Step 1 — Deploy new image to GREEN slot (ports 3002/3003)
+      # Blue-Green Step 1 — Deploy GREEN candidate on localhost:3002
       # -----------------------------------------------------------------------
       - name: "[Blue-Green] Deploy GREEN slot"
         env:
@@ -148,20 +148,20 @@ jobs:
               cors_origin='${{ secrets.CORS_ORIGIN }}' \
               mongo_root_password='${{ secrets.MONGO_ROOT_PASSWORD }}' \
               deploy_slot=green \
-              app_port=3002 \
-              admin_port=3003"
+              app_port=3002"
 
       # -----------------------------------------------------------------------
-      # Blue-Green Step 2 — Health-check GREEN slot before switching traffic
+      # Blue-Green Step 2 — Health-check GREEN over SSH before promotion
       # -----------------------------------------------------------------------
       - name: "[Blue-Green] Health-check GREEN slot"
         id: green-health
         run: |
-          echo "Waiting 20s for GREEN to boot..."
-          sleep 20
           for i in {1..6}; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-              "http://${{ secrets.EC2_HOST }}:3002/api/v1/health" || echo "000")
+            STATUS=$(ssh -i /tmp/deploy_key.pem \
+              -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=10 \
+              ec2-user@${{ secrets.EC2_HOST }} \
+              "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3002/api/v1/health" 2>/dev/null || true)
             echo "Attempt $i — HTTP $STATUS"
             if [ "$STATUS" = "200" ]; then
               echo "GREEN slot is healthy!"
@@ -175,9 +175,9 @@ jobs:
           exit 1
 
       # -----------------------------------------------------------------------
-      # Blue-Green Step 3 — Switch traffic: promote GREEN → BLUE (live)
+      # Blue-Green Step 3 — Update live BLUE after GREEN passes its health check
       # -----------------------------------------------------------------------
-      - name: "[Blue-Green] Promote GREEN → switch traffic to GREEN"
+      - name: "[Blue-Green] Promote tested image to BLUE"
         if: steps.green-health.outputs.green_healthy == 'true'
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
@@ -198,14 +198,13 @@ jobs:
               mongo_root_password='${{ secrets.MONGO_ROOT_PASSWORD }}' \
               deploy_slot=blue \
               app_port=3000 \
-              admin_port=3001 \
               teardown_old_slot=true"
 
       # -----------------------------------------------------------------------
       # Blue-Green Step 4 — Rollback: stop GREEN if health-check failed
       # -----------------------------------------------------------------------
       - name: "[Blue-Green] ROLLBACK — Stop GREEN, keep BLUE live"
-        if: failure() && steps.green-health.outputs.green_healthy == 'false'
+        if: failure() && steps.green-health.outputs.green_healthy != 'true'
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
         run: |
@@ -215,7 +214,7 @@ jobs:
           echo "ROLLBACK COMPLETE — BLUE slot remains live on port 3000"
 
       # -----------------------------------------------------------------------
-      # Final health-check on LIVE slot (port 3000)
+      # Final health-check on LIVE BLUE slot (port 3000)
       # -----------------------------------------------------------------------
       - name: "[Blue-Green] Final verification — LIVE slot on port 3000"
         if: steps.green-health.outputs.green_healthy == 'true'

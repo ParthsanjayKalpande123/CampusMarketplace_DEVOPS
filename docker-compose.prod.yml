@@ -21,20 +21,11 @@
 #   CORS_ORIGIN     — e.g. https://your-domain.com
 # =============================================================================
 
-services:
-
-  # ---------------------------------------------------------------------------
-  # Application — pre-built ECR image
-  # ---------------------------------------------------------------------------
-  app:
+x-app-common: &app-common
     image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG:-latest}
-    container_name: campus_marketplace_app
     restart: unless-stopped
     mem_limit: 400m
     memswap_limit: 768m
-    ports:
-      - "3000:3000"
-      - "3001:3001"
     environment:
       NODE_ENV:        production
       PORT:            3000
@@ -56,6 +47,24 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Application slots — BLUE serves users on 3000; GREEN is tested on localhost
+  # ---------------------------------------------------------------------------
+  app:
+    <<: *app-common
+    container_name: campus_marketplace_app
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+
+  app-green:
+    <<: *app-common
+    container_name: campus_marketplace_app_green
+    ports:
+      - "127.0.0.1:3002:3000"
 
   # ---------------------------------------------------------------------------
   # MongoDB 7 — Production storage with authentication

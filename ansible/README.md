@@ -7,41 +7,37 @@ Implemented in **Phase 9**.
 Ansible configures EC2 and deploys containers ONLY.
 It does NOT provision AWS infrastructure (Terraform owns that).
 
-## Planned Playbook Tasks
+## Deployment Flow
 
 ```
-1.  Update system packages
-2.  Install Docker CE
-3.  Start and enable Docker service
-4.  Install AWS CLI
-5.  Authenticate Docker with Amazon ECR
-6.  Pull campus-marketplace image from ECR
-7.  Create /opt/campus-marketplace/ directory
-8.  Copy .env file (from Ansible vault)
-9.  Create Docker network: campus-marketplace-net
-10. Start MongoDB container (with persistent volume)
-11. Start campus-marketplace container
-12. Verify: GET http://localhost:3000/api/v1/health
-13. Verify: GET http://localhost:3000/api/v1/ready
+1.  Configure Docker, Docker Compose, and AWS CLI on EC2.
+2.  Copy production Compose and monitoring configuration.
+3.  Write the protected production .env file and authenticate to ECR.
+4.  Start/update shared database and monitoring services.
+5.  Deploy GREEN on 127.0.0.1:3002 while BLUE continues serving on :3000.
+6.  Verify GREEN locally, then deploy the same image to BLUE on :3000.
+7.  Verify BLUE before stopping GREEN; on GREEN failure, leave BLUE running.
 ```
+
+The GREEN host port is bound to loopback and is not exposed in the EC2
+security group. The stable production endpoint remains port 3000; promotion
+updates the BLUE service after GREEN passes its health check.
 
 ## Idempotency
 
-All tasks use idempotent Ansible modules.
-Running the playbook multiple times does not restart healthy containers
-or cause data loss in the MongoDB volume.
+The playbook can be rerun safely. MongoDB data is stored in a named volume and
+is shared by both application slots. Deploying GREEN does not recreate BLUE;
+the old GREEN container is stopped only after BLUE passes its post-promotion
+health check.
 
-## Planned File Structure
+## File Structure
 
 ```
 ansible/
 ├── playbook.yml
 ├── inventory/
-│   └── hosts.ini
+│   └── hosts.ini  (generated during CI/CD; ignored by Git)
 ├── roles/
-│   ├── docker/
-│   ├── ecr/
-│   └── campus-marketplace/
-└── vars/
-    └── vault.yml   (encrypted — never committed in plaintext)
+│   ├── common/
+│   └── deploy/
 ```
