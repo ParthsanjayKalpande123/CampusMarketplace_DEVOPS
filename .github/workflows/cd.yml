@@ -1,5 +1,5 @@
 # =============================================================================
-# .github/workflows/cd.yml — Continuous Deployment
+# .github/workflows/cd.yml — Continuous Deployment (Blue-Green Strategy)
 #
 # Triggers:
 #   - Push to the main branch ONLY
@@ -7,8 +7,15 @@
 # Pipeline:
 #   1. test        — Calls ci.yml (reusable workflow). Gate for deployment.
 #   2. build-push  — Build Docker image, tag with git SHA + latest, push to ECR.
-#   3. deploy      — Run Ansible playbook on the EC2 instance to pull the new
-#                    image and restart the Docker Compose stack.
+#   3. deploy      — Blue-Green deployment via Ansible:
+#                    a) Deploy new image to GREEN slot (port 3002/3003)
+#                    b) Health-check GREEN — if pass, switch traffic to GREEN
+#                    c) Tear down BLUE slot (old version)
+#                    d) Rollback: if GREEN health-check fails, keep BLUE running
+#
+# Deployment Strategy: Blue-Green
+#   BLUE  slot → currently live (ports 3000/3001)
+#   GREEN slot → new version under test (ports 3002/3003)
 #
 # Required GitHub Secrets:
 #   AWS_ACCESS_KEY_ID       — IAM user with ECR push and EC2 describe permissions
@@ -84,10 +91,10 @@ jobs:
           echo "Pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
   # ---------------------------------------------------------------------------
-  # Job 3 — Deploy to EC2 via Ansible
+  # Job 3 — Blue-Green Deploy to EC2 via Ansible
   # ---------------------------------------------------------------------------
   deploy:
-    name: Deploy to EC2 (Ansible)
+    name: Blue-Green Deploy to EC2
     needs: build-push
     runs-on: ubuntu-latest
 
@@ -119,7 +126,10 @@ jobs:
           ${{ secrets.EC2_HOST }} ansible_user=ec2-user ansible_ssh_private_key_file=/tmp/deploy_key.pem ansible_ssh_common_args='-o StrictHostKeyChecking=no -o ConnectTimeout=10 -o ConnectionAttempts=3 -o ServerAliveInterval=15 -o ServerAliveCountMax=4'
           EOF
 
-      - name: Run Ansible deploy playbook
+      # -----------------------------------------------------------------------
+      # Blue-Green Step 1 — Deploy new image to GREEN slot (ports 3002/3003)
+      # -----------------------------------------------------------------------
+      - name: "[Blue-Green] Deploy GREEN slot"
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
         run: |
@@ -136,15 +146,85 @@ jobs:
               jwt_secret='${{ secrets.JWT_SECRET }}' \
               mongodb_uri='${{ secrets.MONGODB_URI }}' \
               cors_origin='${{ secrets.CORS_ORIGIN }}' \
-              mongo_root_password='${{ secrets.MONGO_ROOT_PASSWORD }}'"
+              mongo_root_password='${{ secrets.MONGO_ROOT_PASSWORD }}' \
+              deploy_slot=green \
+              app_port=3002 \
+              admin_port=3003"
 
-      - name: Health check — verify deployment
+      # -----------------------------------------------------------------------
+      # Blue-Green Step 2 — Health-check GREEN slot before switching traffic
+      # -----------------------------------------------------------------------
+      - name: "[Blue-Green] Health-check GREEN slot"
+        id: green-health
         run: |
-          sleep 15
+          echo "Waiting 20s for GREEN to boot..."
+          sleep 20
+          for i in {1..6}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              "http://${{ secrets.EC2_HOST }}:3002/api/v1/health" || echo "000")
+            echo "Attempt $i — HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "GREEN slot is healthy!"
+              echo "green_healthy=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "GREEN health-check FAILED — will rollback"
+          echo "green_healthy=false" >> $GITHUB_OUTPUT
+          exit 1
+
+      # -----------------------------------------------------------------------
+      # Blue-Green Step 3 — Switch traffic: promote GREEN → BLUE (live)
+      # -----------------------------------------------------------------------
+      - name: "[Blue-Green] Promote GREEN → switch traffic to GREEN"
+        if: steps.green-health.outputs.green_healthy == 'true'
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+        run: |
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com"
+          IMAGE_TAG="${GITHUB_SHA::7}"
+          ansible-playbook ansible/playbook.yml \
+            -i ansible/inventory/hosts.ini \
+            --extra-vars "\
+              ecr_registry=${ECR_REGISTRY} \
+              ecr_repository=${{ secrets.ECR_REPOSITORY }} \
+              image_tag=${IMAGE_TAG} \
+              aws_region=${{ secrets.AWS_REGION }} \
+              jwt_secret='${{ secrets.JWT_SECRET }}' \
+              mongodb_uri='${{ secrets.MONGODB_URI }}' \
+              cors_origin='${{ secrets.CORS_ORIGIN }}' \
+              mongo_root_password='${{ secrets.MONGO_ROOT_PASSWORD }}' \
+              deploy_slot=blue \
+              app_port=3000 \
+              admin_port=3001 \
+              teardown_old_slot=true"
+
+      # -----------------------------------------------------------------------
+      # Blue-Green Step 4 — Rollback: stop GREEN if health-check failed
+      # -----------------------------------------------------------------------
+      - name: "[Blue-Green] ROLLBACK — Stop GREEN, keep BLUE live"
+        if: failure() && steps.green-health.outputs.green_healthy == 'false'
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+        run: |
+          ansible-playbook ansible/playbook.yml \
+            -i ansible/inventory/hosts.ini \
+            --extra-vars "deploy_slot=green teardown_only=true"
+          echo "ROLLBACK COMPLETE — BLUE slot remains live on port 3000"
+
+      # -----------------------------------------------------------------------
+      # Final health-check on LIVE slot (port 3000)
+      # -----------------------------------------------------------------------
+      - name: "[Blue-Green] Final verification — LIVE slot on port 3000"
+        if: steps.green-health.outputs.green_healthy == 'true'
+        run: |
+          sleep 10
           curl --fail --retry 5 --retry-delay 5 \
             "http://${{ secrets.EC2_HOST }}:3000/api/v1/health" \
             | python3 -m json.tool
-          echo "Deployment health check passed."
+          echo "Blue-Green deployment successful. LIVE on port 3000."
 
       - name: Cleanup SSH key
         if: always()

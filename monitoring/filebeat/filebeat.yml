@@ -1,0 +1,24 @@
+# =============================================================================
+# Filebeat configuration — Campus Marketplace
+#
+# Collects logs from all containers and ships to Elasticsearch directly
+# =============================================================================
+
+filebeat.inputs:
+  - type: container
+    paths:
+      - '/var/lib/docker/containers/*/*.log'
+    processors:
+      - add_docker_metadata:
+          host: "unix:///var/run/docker.sock"
+
+# Send directly to Elasticsearch
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  index: "campus-marketplace-logs-%{+yyyy.MM.dd}"
+
+setup.template.name: "campus-marketplace-logs"
+setup.template.pattern: "campus-marketplace-logs-*"
+setup.ilm.enabled: false
+
+logging.level: info

@@ -1,0 +1,15 @@
+# =============================================================================
+# Grafana dashboard provisioner config
+# =============================================================================
+
+apiVersion: 1
+
+providers:
+  - name: 'Campus Marketplace'
+    orgId: 1
+    folder: 'Campus Marketplace'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

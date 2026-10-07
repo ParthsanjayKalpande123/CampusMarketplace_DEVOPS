@@ -34,6 +34,7 @@ const errorMiddleware  = require('./middleware/error.middleware');
 const { NotFoundError } = require('./utils/errors');
 const apiRoutes        = require('./routes/index');
 const viewRoutes       = require('./routes/views.routes');
+const { register, httpRequestDuration, httpRequestTotal } = require('./utils/metrics');
 
 const app = express();
 
@@ -82,6 +83,20 @@ app.use(cookieParser());
 // 4. HTTP request logger (Morgan → Winston)
 // ------------------------------------------------------------------
 app.use(requestLogger);
+
+// ------------------------------------------------------------------
+// 4b. Prometheus HTTP metrics middleware
+// ------------------------------------------------------------------
+app.use((req, res, next) => {
+  const end = httpRequestDuration.startTimer();
+  res.on('finish', () => {
+    const route = req.route ? req.route.path : req.path;
+    const labels = { method: req.method, route, status_code: res.statusCode };
+    end(labels);
+    httpRequestTotal.inc(labels);
+  });
+  next();
+});
 
 // ------------------------------------------------------------------
 // 5. Global rate limiter
@@ -134,6 +149,19 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 // 7. EJS view routes (served at /)
 // ------------------------------------------------------------------
 app.use('/', viewRoutes);
+
+// ------------------------------------------------------------------
+// 7b. Prometheus metrics scrape endpoint
+//     Prometheus container scrapes this at http://app:3000/metrics
+// ------------------------------------------------------------------
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+  } catch (err) {
+    res.status(500).end(err.message);
+  }
+});
 
 // ------------------------------------------------------------------
 // 8. API routes (served at /api/v1)

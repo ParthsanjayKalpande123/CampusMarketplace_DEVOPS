@@ -1,5 +1,5 @@
 # =============================================================================
-# .github/workflows/ci.yml — Continuous Integration
+# .github/workflows/ci.yml — Continuous Integration + DevSecOps
 #
 # Triggers:
 #   - Every push to any branch
@@ -7,8 +7,10 @@
 #   - workflow_call (allows cd.yml to reuse this job)
 #
 # Jobs:
-#   test — Install deps, run the full Jest test suite against a
-#           real MongoDB service container (not mock)
+#   test          — Install deps, run the full Jest test suite against a
+#                   real MongoDB service container (not mock)
+#   security-scan — DevSecOps: npm audit (dependency CVEs) +
+#                   Trivy (container image vulnerability scan)
 # =============================================================================
 
 name: CI
@@ -74,3 +76,71 @@ jobs:
           COOKIE_SAME_SITE: lax
           LOG_LEVEL:       error
           PORT:            3001
+
+  # ---------------------------------------------------------------------------
+  # DevSecOps — Security Scanning (runs in parallel with tests)
+  # ---------------------------------------------------------------------------
+  security-scan:
+    name: DevSecOps — Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # -----------------------------------------------------------------------
+      # Step 1 — Dependency vulnerability audit (npm audit)
+      # -----------------------------------------------------------------------
+      - name: NPM Audit — dependency CVE scan
+        run: |
+          npm audit --audit-level=high --json > npm-audit-report.json || true
+          echo "=== NPM Audit Summary ==="
+          npm audit --audit-level=high || true
+
+      - name: Upload npm audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: npm-audit-report.json
+          retention-days: 14
+
+      # -----------------------------------------------------------------------
+      # Step 2 — Container image vulnerability scan (Trivy)
+      # -----------------------------------------------------------------------
+      - name: Build Docker image for scanning
+        run: docker build -t campus-marketplace:scan-${{ github.sha }} .
+
+      - name: Run Trivy container vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: campus-marketplace:scan-${{ github.sha }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+          exit-code: "0"           # Don't fail build — report only
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Upload Trivy report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-scan-report
+          path: trivy-results.sarif
+          retention-days: 14
+
+      - name: Clean up scan image
+        if: always()
+        run: docker rmi campus-marketplace:scan-${{ github.sha }} || true
