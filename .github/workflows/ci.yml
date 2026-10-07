@@ -26,11 +26,7 @@ on:
         description: "Test outcome"
         value: ${{ jobs.test.outputs.outcome }}
 
-# Required for Trivy SARIF upload to GitHub Security tab
-permissions:
-  contents:        read
-  security-events: write
-  actions:         read
+
 
 jobs:
   test:
