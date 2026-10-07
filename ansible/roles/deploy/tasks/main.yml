@@ -19,8 +19,16 @@
 # =============================================================================
 
 # ---------------------------------------------------------------------------
-# Step 1 — Copy compose file to server
+# Step 1 — Copy compose file and monitoring config to server
 # ---------------------------------------------------------------------------
+
+- name: Copy monitoring directory to server
+  ansible.builtin.copy:
+    src:   "{{ playbook_dir }}/../../monitoring"
+    dest:  "{{ app_dir }}/"
+    owner: ec2-user
+    group: ec2-user
+  tags: deploy
 
 - name: Copy docker-compose.prod.yml to server
   ansible.builtin.copy:

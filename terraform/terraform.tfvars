@@ -17,7 +17,7 @@ project_name      = "campus-marketplace"
 environment       = "prod"
 
 # EC2 configuration
-ec2_instance_type       = "t3.micro"
+ec2_instance_type       = "m7i-flex.large"
 ec2_key_pair_name       = "campus-marketplace-key"       # Must already exist in AWS
 ec2_root_volume_size_gb = 30
 
@@ -26,7 +26,8 @@ ec2_root_volume_size_gb = 30
 allowed_ssh_cidr = "0.0.0.0/0"
 
 # Application
-app_port = 3000
+app_port   = 3000
+admin_port = 3001
 
 # ECR image retention
 ecr_image_retention_count = 5
