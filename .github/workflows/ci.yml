@@ -26,6 +26,12 @@ on:
         description: "Test outcome"
         value: ${{ jobs.test.outputs.outcome }}
 
+# Required for Trivy SARIF upload to GitHub Security tab
+permissions:
+  contents:        read
+  security-events: write
+  actions:         read
+
 jobs:
   test:
     name: Test (Node ${{ matrix.node-version }})
@@ -129,7 +135,7 @@ jobs:
           exit-code: "0"           # Don't fail build — report only
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: trivy-results.sarif
