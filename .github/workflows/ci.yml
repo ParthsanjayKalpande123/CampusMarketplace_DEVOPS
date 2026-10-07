@@ -125,26 +125,31 @@ jobs:
       - name: Build Docker image for scanning
         run: docker build -t campus-marketplace:scan-${{ github.sha }} .
 
-      - name: Run Trivy container vulnerability scan
+      # Trivy scan — table output printed directly in job log
+      - name: Run Trivy container vulnerability scan (table)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: campus-marketplace:scan-${{ github.sha }}
-          format: sarif
-          output: trivy-results.sarif
+          format: table
           severity: HIGH,CRITICAL
           exit-code: "0"           # Don't fail build — report only
 
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
+      # Trivy scan — JSON format saved as artifact for download
+      - name: Run Trivy container vulnerability scan (artifact)
+        uses: aquasecurity/trivy-action@master
         with:
-          sarif_file: trivy-results.sarif
+          image-ref: campus-marketplace:scan-${{ github.sha }}
+          format: json
+          output: trivy-results.json
+          severity: HIGH,CRITICAL
+          exit-code: "0"
 
       - name: Upload Trivy report artifact
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: trivy-scan-report
-          path: trivy-results.sarif
+          path: trivy-results.json
           retention-days: 14
 
       - name: Clean up scan image
