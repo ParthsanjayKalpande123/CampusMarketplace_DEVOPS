@@ -24,7 +24,7 @@
 
 - name: Copy monitoring directory to server
   ansible.builtin.copy:
-    src:   "{{ playbook_dir }}/../../monitoring"
+    src:   "{{ playbook_dir }}/../monitoring"
     dest:  "{{ app_dir }}/"
     owner: ec2-user
     group: ec2-user
