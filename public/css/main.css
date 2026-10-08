@@ -182,6 +182,7 @@ body {
 .cm-hero {
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
   background: linear-gradient(135deg, #3730a3 0%, #4f46e5 50%, #6366f1 100%);
   color: #fff;
 }
