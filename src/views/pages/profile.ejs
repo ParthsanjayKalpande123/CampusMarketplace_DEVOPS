@@ -14,6 +14,15 @@
 
         <div id="profileAlert" class="alert d-none"></div>
 
+        <ul class="nav nav-tabs cm-profile-tabs mb-3" id="profileTabs" role="tablist">
+          <li class="nav-item" role="presentation"><button class="nav-link active" id="profile-details-tab" data-bs-toggle="tab" data-bs-target="#profile-details" type="button" role="tab" aria-controls="profile-details" aria-selected="true"><i class="bi bi-person me-1"></i>Personal details</button></li>
+          <li class="nav-item" role="presentation"><button class="nav-link" id="profile-verification-tab" data-bs-toggle="tab" data-bs-target="#profile-verification" type="button" role="tab" aria-controls="profile-verification" aria-selected="false"><i class="bi bi-patch-check me-1"></i>Verification</button></li>
+          <li class="nav-item" role="presentation"><button class="nav-link" id="profile-reputation-tab" data-bs-toggle="tab" data-bs-target="#profile-reputation" type="button" role="tab" aria-controls="profile-reputation" aria-selected="false"><i class="bi bi-star me-1"></i>Reputation</button></li>
+          <li class="nav-item" role="presentation"><button class="nav-link" id="profile-account-tab" data-bs-toggle="tab" data-bs-target="#profile-account" type="button" role="tab" aria-controls="profile-account" aria-selected="false"><i class="bi bi-gear me-1"></i>Account</button></li>
+        </ul>
+
+        <div class="tab-content cm-profile-tab-content" id="profileTabContent">
+        <section class="tab-pane fade show active" id="profile-details" role="tabpanel" aria-labelledby="profile-details-tab" tabindex="0">
         <div class="cm-form-card mb-4">
           <h2 class="cm-detail-section-title mb-4">Personal Information</h2>
           <form id="profileForm" novalidate>
@@ -53,6 +62,14 @@
                 />
               </div>
               <div class="col-md-6">
+                <label for="department" class="form-label fw-medium">Department</label>
+                <input type="text" class="form-control cm-form-control" id="department" value="<%= user.department || '' %>" maxlength="120" placeholder="e.g. Computer Engineering">
+              </div>
+              <div class="col-md-6">
+                <label for="year" class="form-label fw-medium">Year of Study</label>
+                <input type="text" class="form-control cm-form-control" id="year" value="<%= user.year || '' %>" maxlength="40" placeholder="e.g. Second year">
+              </div>
+              <div class="col-md-6">
                 <label for="phone" class="form-label fw-medium">Phone Number</label>
                 <input
                   type="tel"
@@ -82,7 +99,40 @@
 
           </form>
         </div>
+        </section>
 
+        <section class="tab-pane fade" id="profile-verification" role="tabpanel" aria-labelledby="profile-verification-tab" tabindex="0">
+        <div class="cm-form-card mb-4">
+          <h2 class="cm-detail-section-title mb-3">College Verification</h2>
+          <% if (user.collegeVerified) { %>
+            <p class="text-success"><i class="bi bi-patch-check-fill"></i> Verified student — <%= user.college %></p>
+          <% } else { %>
+            <p class="text-muted">A verified student badge helps other campus users identify you. Email delivery is not configured yet, so verification cannot be completed in this environment.</p>
+            <form id="verificationForm" class="row g-2">
+              <div class="col-md-5"><input type="email" id="collegeEmail" class="form-control" value="<%= user.collegeEmail || '' %>" placeholder="you@college.edu" required></div>
+              <div class="col-md-5"><input type="text" id="verificationCollege" class="form-control" value="<%= user.college || '' %>" placeholder="College name" required></div>
+              <div class="col-md-2"><button class="btn btn-outline-primary w-100">Request verification</button></div>
+            </form>
+            <div id="verificationAlert" class="mt-2 small text-muted"></div>
+          <% } %>
+        </div>
+        </section>
+
+        <section class="tab-pane fade" id="profile-reputation" role="tabpanel" aria-labelledby="profile-reputation-tab" tabindex="0">
+        <div class="cm-form-card mb-4">
+          <h2 class="cm-detail-section-title">Seller Reputation</h2>
+          <p class="mb-1">Average rating: <%= profileStats.averageRating ? `${profileStats.averageRating.toFixed(1)} / 5` : 'No reviews yet' %> (<%= profileStats.reviewCount %> reviews)</p>
+          <p class="mb-1">Completed sales: <%= profileStats.sold %> · Purchases: <%= profileStats.bought %></p>
+          <p class="mb-0">Marketplace trust score: <%= profileStats.trustScore %> / 100</p>
+          <% if (profileStats.sellerReviews.length) { %>
+            <hr><% profileStats.sellerReviews.forEach(function(review) { %>
+              <p class="mb-1"><strong><%= review.rating %>/5</strong> — <%= review.text || 'Rating only' %> <span class="text-muted">by <%= review.author ? review.author.name : 'Student' %></span></p>
+            <% }); %>
+          <% } %>
+        </div>
+        </section>
+
+        <section class="tab-pane fade" id="profile-account" role="tabpanel" aria-labelledby="profile-account-tab" tabindex="0">
         <!-- Account info (read-only) -->
         <div class="cm-form-card">
           <h2 class="cm-detail-section-title mb-4">Account Information</h2>
@@ -103,6 +153,8 @@
               <i class="bi bi-box-arrow-right me-1"></i>Logout
             </button>
           </div>
+        </div>
+        </section>
         </div>
 
       </div>

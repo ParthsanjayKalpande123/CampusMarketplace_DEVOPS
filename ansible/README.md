@@ -23,6 +23,10 @@ The GREEN host port is bound to loopback and is not exposed in the EC2
 security group. The stable production endpoint remains port 3000; promotion
 updates the BLUE service after GREEN passes its health check.
 
+Gemini-powered marketplace features are optional in production. Configure the
+`GEMINI_API_KEY` GitHub Actions secret to pass the key through Ansible into the
+protected production environment file; do not store the key in source control.
+
 ## Idempotency
 
 The playbook can be rerun safely. MongoDB data is stored in a named volume and

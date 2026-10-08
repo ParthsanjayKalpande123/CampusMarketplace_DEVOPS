@@ -28,6 +28,7 @@
 #   MONGODB_URI             — mongodb://mongodb:27017/campus_marketplace
 #   CORS_ORIGIN             — e.g. https://your-domain.com
 #   MONGO_ROOT_PASSWORD     — MongoDB root password for production
+#   GEMINI_API_KEY          — Optional; enables Gemini-powered marketplace features
 # =============================================================================
 
 name: CD — Build, Push & Deploy
@@ -132,6 +133,7 @@ jobs:
       - name: "[Blue-Green] Deploy GREEN slot"
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com"
@@ -147,6 +149,7 @@ jobs:
               mongodb_uri='${{ secrets.MONGODB_URI }}' \
               cors_origin='${{ secrets.CORS_ORIGIN }}' \
               mongo_root_password='${{ secrets.MONGO_ROOT_PASSWORD }}' \
+              gemini_api_key="${GEMINI_API_KEY}" \
               deploy_slot=green \
               app_port=3002"
 
@@ -181,6 +184,7 @@ jobs:
         if: steps.green-health.outputs.green_healthy == 'true'
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com"
@@ -196,6 +200,7 @@ jobs:
               mongodb_uri='${{ secrets.MONGODB_URI }}' \
               cors_origin='${{ secrets.CORS_ORIGIN }}' \
               mongo_root_password='${{ secrets.MONGO_ROOT_PASSWORD }}' \
+              gemini_api_key="${GEMINI_API_KEY}" \
               deploy_slot=blue \
               app_port=3000 \
               teardown_old_slot=true"

@@ -36,13 +36,15 @@ async function getMe(req, res, next) {
  */
 async function updateMe(req, res, next) {
   try {
-    const { name, phone, college, profileImage } = req.body;
+    const { name, phone, college, profileImage, department, year } = req.body;
 
     const user = await userService.updateProfile(req.user._id, {
       name,
       phone,
       college,
       profileImage,
+      department,
+      year,
     });
 
     return apiResponse.success(res, { user }, 'Profile updated successfully.');

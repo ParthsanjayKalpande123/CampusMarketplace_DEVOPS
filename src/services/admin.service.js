@@ -16,6 +16,7 @@ const User    = require('../models/User');
 const Product = require('../models/Product');
 const Report  = require('../models/Report');
 const { NotFoundError, AppError } = require('../utils/errors');
+const CampusRecord = require('../models/CampusRecord');
 
 // ------------------------------------------------------------------
 // Dashboard
@@ -38,6 +39,7 @@ async function getStats() {
     recentUsers,
     recentReports,
     listingsByLocation,
+    flaggedListings,
   ] = await Promise.all([
     User.countDocuments(),
     Product.countDocuments(),
@@ -66,6 +68,9 @@ async function getStats() {
       { $sort: { count: -1, _id: 1 } },
       { $limit: 10 },
     ]),
+    Product.find({ aiReviewStatus: 'pending-review' })
+      .populate('seller', 'name college').populate('category', 'name')
+      .sort({ updatedAt: -1 }).limit(10).lean(),
   ]);
 
   return {
@@ -78,6 +83,7 @@ async function getStats() {
     recentUsers,
     recentReports,
     listingsByLocation,
+    flaggedListings,
   };
 }
 
@@ -189,9 +195,16 @@ async function updateReportStatus(reportId, status) {
     { new: true }
   )
     .populate('product',    'title status')
+    .populate('reportedSeller', 'name')
     .populate('reportedBy', 'name email');
 
   if (!report) throw new NotFoundError('Report');
+  await CampusRecord.create({
+    owner: report.reportedBy._id,
+    type: 'notification',
+    product: report.product ? report.product._id : null,
+    content: `Your ${report.targetType} report was marked ${status}.`,
+  });
   return report;
 }
 

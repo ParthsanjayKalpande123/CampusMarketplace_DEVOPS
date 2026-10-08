@@ -16,7 +16,7 @@
 const { Schema, model, Types } = require('mongoose');
 
 const CONDITION_VALUES = ['new', 'like-new', 'good', 'fair', 'poor'];
-const STATUS_VALUES    = ['available', 'sold', 'exchanged', 'inactive', 'removed'];
+const STATUS_VALUES    = ['available', 'reserved', 'sold', 'exchanged', 'inactive', 'removed'];
 
 const productSchema = new Schema(
   {
@@ -86,6 +86,68 @@ const productSchema = new Schema(
     isExchangeable: {
       type: Boolean,
       default: false,
+    },
+
+    listingType: {
+      type: String,
+      enum: ['sale', 'free', 'lost', 'found'],
+      default: 'sale',
+    },
+
+    details: {
+      type: Map,
+      of: String,
+      default: {},
+    },
+
+    tags: {
+      type: [{ type: String, trim: true, maxlength: 40 }],
+      default: [],
+      validate: {
+        validator: (tags) => tags.length <= 10,
+        message: 'A listing can have at most 10 tags.',
+      },
+    },
+
+    pickupLocation: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'Pickup location cannot exceed 200 characters.'],
+      default: null,
+    },
+
+    pickupAvailability: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'Pickup availability cannot exceed 200 characters.'],
+      default: null,
+    },
+
+    lostFoundDate: {
+      type: Date,
+      default: null,
+    },
+
+    reservedFor: {
+      type: Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+
+    reservationExpiresAt: {
+      type: Date,
+      default: null,
+    },
+
+    aiReviewStatus: {
+      type: String,
+      enum: ['not-checked', 'pending-review', 'clear'],
+      default: 'not-checked',
+    },
+
+    aiRiskFlags: {
+      type: [String],
+      default: [],
     },
 
     status: {

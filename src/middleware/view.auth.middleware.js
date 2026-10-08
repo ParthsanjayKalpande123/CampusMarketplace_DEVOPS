@@ -17,6 +17,7 @@
 const jwt  = require('jsonwebtoken');
 const { config } = require('../config/env');
 const User = require('../models/User');
+const CampusRecord = require('../models/CampusRecord');
 
 /**
  * Soft auth — decode JWT cookie and set res.locals.
@@ -33,6 +34,7 @@ async function setLocals(req, res, next) {
   res.locals.user            = null;
   res.locals.isAuthenticated = false;
   res.locals.currentPath     = req.path;
+  res.locals.unreadNotificationCount = 0;
 
   const token = req.cookies && req.cookies.token;
   if (!token) return next();
@@ -49,6 +51,18 @@ async function setLocals(req, res, next) {
   } catch {
     // Expired or tampered token — treat as unauthenticated
     res.clearCookie('token');
+  }
+
+  if (res.locals.isAuthenticated) {
+    try {
+      res.locals.unreadNotificationCount = await CampusRecord.countDocuments({
+        owner: res.locals.user._id,
+        type: 'notification',
+        readAt: null,
+      });
+    } catch (error) {
+      return next(error);
+    }
   }
 
   return next();

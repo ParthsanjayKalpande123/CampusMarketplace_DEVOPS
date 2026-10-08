@@ -6,7 +6,7 @@
  * Business logic for user profile management.
  *
  * Only these fields may be updated by the user:
- *   name, phone, college, profileImage
+ *   name, phone, college, profileImage, department, year
  *
  * Email and role are NOT updatable through the self-service profile endpoint.
  * Password changes are a separate future concern.
@@ -41,7 +41,7 @@ async function getProfile(userId) {
  */
 async function updateProfile(userId, updates) {
   // Whitelist: only these fields may be changed
-  const ALLOWED_FIELDS = ['name', 'phone', 'college', 'profileImage'];
+  const ALLOWED_FIELDS = ['name', 'phone', 'college', 'profileImage', 'department', 'year'];
 
   const safeUpdates = {};
   ALLOWED_FIELDS.forEach((field) => {

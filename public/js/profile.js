@@ -17,6 +17,8 @@ if (profileForm) {
     const college      = document.getElementById('college').value.trim();
     const phone        = document.getElementById('phone').value.trim();
     const profileImage = document.getElementById('profileImage').value.trim();
+    const department = document.getElementById('department').value.trim();
+    const year = document.getElementById('year').value.trim();
 
     if (!name) {
       window.CampusMarket.showAlert('profileAlert', 'Name is required.');
@@ -30,6 +32,8 @@ if (profileForm) {
     if (college)      body.college      = college;
     if (phone)        body.phone        = phone;
     if (profileImage) body.profileImage = profileImage;
+    body.department = department;
+    body.year = year;
 
     try {
       const res  = await fetch('/api/v1/users/me', {
@@ -61,3 +65,24 @@ if (profileForm) {
     }
   });
 }
+
+const verificationForm = document.getElementById('verificationForm');
+verificationForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const target = document.getElementById('verificationAlert');
+  try {
+    const response = await fetch('/api/v1/features/verification/request', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: document.getElementById('collegeEmail').value,
+        college: document.getElementById('verificationCollege').value,
+      }),
+    });
+    const data = await response.json();
+    target.textContent = response.ok ? data.message : data.error.message;
+  } catch (error) {
+    target.textContent = error.message || 'Could not submit verification request.';
+  }
+});

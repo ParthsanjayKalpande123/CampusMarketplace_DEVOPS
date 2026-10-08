@@ -57,7 +57,9 @@
                   %>
                   <tr id="report-row-<%= r._id %>">
                     <td>
-                      <% if (r.product) { %>
+                      <% if (r.targetType === 'seller' && r.reportedSeller) { %>
+                        <span class="fw-medium">Seller: <%= r.reportedSeller.name %></span>
+                      <% } else if (r.product) { %>
                         <a href="/listings/<%= r.product._id %>" class="cm-link fw-medium" target="_blank">
                           <%= r.product.title ? (r.product.title.length > 35 ? r.product.title.substring(0,32)+'...' : r.product.title) : 'Deleted' %>
                         </a>

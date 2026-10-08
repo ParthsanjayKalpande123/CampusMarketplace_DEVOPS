@@ -58,6 +58,54 @@
               <div class="form-text">10–2000 characters.</div>
             </div>
 
+            <% if (!product) { %>
+              <div class="cm-form-card mb-4">
+                <h2 class="h5">AI Listing Helper</h2>
+                <p class="small text-muted">Use AI suggestions as a starting point; review all generated details before publishing.</p>
+                <button type="button" class="btn btn-sm btn-light me-2" id="loadListingExampleBtn">Load example details</button>
+                <button type="button" class="btn btn-sm btn-outline-primary me-2" id="generateListingBtn">Generate title and description</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="suggestPriceBtn">Suggest price</button>
+                <button type="button" class="btn btn-sm btn-outline-warning" id="checkListingBtn">Check listing quality</button>
+                <div id="aiListingResult" class="small mt-2" aria-live="polite"></div>
+              </div>
+            <% } %>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label for="listingType" class="form-label fw-medium">Listing type</label>
+                <select class="form-select" id="listingType">
+                  <% const selectedType = product ? product.listingType : 'sale'; %>
+                  <option value="sale" <%= selectedType === 'sale' ? 'selected' : '' %>>For sale</option>
+                  <option value="free" <%= selectedType === 'free' ? 'selected' : '' %>>Free giveaway</option>
+                  <option value="lost" <%= selectedType === 'lost' ? 'selected' : '' %>>Lost item</option>
+                  <option value="found" <%= selectedType === 'found' ? 'selected' : '' %>>Found item</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label for="lostFoundDate" class="form-label fw-medium">Lost / found date (optional)</label>
+                <input type="date" class="form-control" id="lostFoundDate" value="<%= product && product.lostFoundDate ? new Date(product.lostFoundDate).toISOString().slice(0,10) : '' %>">
+              </div>
+              <div class="col-md-6">
+                <label for="pickupLocation" class="form-label fw-medium">Campus pickup location</label>
+                <input type="text" class="form-control" id="pickupLocation" maxlength="200" value="<%= product ? product.pickupLocation || '' : '' %>" placeholder="e.g. College main gate">
+              </div>
+              <div class="col-md-6">
+                <label for="pickupAvailability" class="form-label fw-medium">Pickup availability</label>
+                <input type="text" class="form-control" id="pickupAvailability" maxlength="200" value="<%= product ? product.pickupAvailability || '' : '' %>" placeholder="e.g. Weekdays, 10 AM–4 PM">
+              </div>
+            </div>
+
+            <div class="cm-form-card mb-4">
+              <h2 class="h5">Category-specific information</h2>
+              <p class="small text-muted">Fill in what applies. Details help buyers compare similar products.</p>
+              <div class="row g-2">
+                <% const detailFields = [['brand','Brand'],['model','Model'],['ram','RAM'],['storage','Storage'],['warranty','Warranty'],['author','Author'],['edition','Edition'],['subject','Subject'],['semester','Semester'],['dimensions','Dimensions'],['material','Material']]; %>
+                <% detailFields.forEach(function(field) { %>
+                  <div class="col-md-4"><label class="form-label small" for="detail-<%= field[0] %>"><%= field[1] %></label><input id="detail-<%= field[0] %>" class="form-control form-control-sm" maxlength="120" value="<%= product && product.details ? (product.details.get ? product.details.get(field[0]) || '' : product.details[field[0]] || '') : '' %>"></div>
+                <% }); %>
+              </div>
+            </div>
+
             <div class="row g-3 mb-4">
 
               <!-- Category -->
@@ -133,6 +181,12 @@
                 value="<%= product && product.imageUrl ? product.imageUrl : '' %>"
               />
               <div class="form-text">Paste a direct link to an image (hosted on any public URL).</div>
+            </div>
+            <div class="mb-4">
+              <label for="tags" class="form-label fw-medium">Tags (comma separated)</label>
+              <input type="text" class="form-control" id="tags" maxlength="400"
+                value="<%= product && product.tags ? product.tags.join(', ') : '' %>"
+                placeholder="e.g. laptop, engineering, 8GB RAM">
             </div>
 
             <!-- Exchange toggle -->

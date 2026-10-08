@@ -19,7 +19,7 @@ const apiResponse    = require('../utils/apiResponse');
  */
 async function getAll(req, res, next) {
   try {
-    const { products, pagination } = await productService.getProducts(req.query);
+    const { products, pagination } = await productService.getProducts(req.query, req.user && req.user._id);
     return apiResponse.paginated(res, products, pagination, 'Products fetched successfully.');
   } catch (err) {
     return next(err);
@@ -67,11 +67,15 @@ async function create(req, res, next) {
     const {
       title, description, category, price,
       condition, imageUrl, location, isExchangeable,
+      listingType, details, pickupLocation, pickupAvailability, lostFoundDate,
+      tags,
     } = req.body;
 
     const product = await productService.createProduct(req.user._id, {
       title, description, category, price,
       condition, imageUrl, location, isExchangeable,
+      listingType, details, pickupLocation, pickupAvailability, lostFoundDate,
+      tags,
     });
 
     return apiResponse.created(res, { product }, 'Listing created successfully.');

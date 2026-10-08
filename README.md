@@ -18,6 +18,16 @@ A student-focused marketplace for buying, selling and exchanging used items with
 | Configuration | Ansible |
 | CI/CD | GitHub Actions + Amazon ECR |
 
+## Marketplace features
+
+Signed-in students can save listings and searches, browse recently viewed and similar products, manage interests and notifications, compare listings, propose price or exchange offers, reserve items, schedule campus pickup, confirm a handover with an order QR code, review completed transactions, block users, and report listings or sellers. Listings support free, lost, and found types plus category-specific details.
+
+Orders created by an accepted offer or reservation are **not paid online**: payment integration is intentionally pending selection and setup of a payment provider. Their payment status is shown as `not-integrated`.
+
+AI listing generation, price suggestions, the marketplace assistant, quality checks, and scam-risk checks use Google's Gemini Interactions API, defaulting to `gemini-3.8-flash`. Set `GEMINI_API_KEY` (and optionally `GEMINI_MODEL`) in the application environment. AI results are advisory. Potential fraud flags are sent to the admin dashboard for human review. Without the API key, the AI endpoints return a clear configuration error.
+
+College details can be saved, but verification badges remain unavailable until an email delivery/verification service is configured. The verification request endpoint does not mark accounts verified.
+
 ---
 
 ## Project Structure
@@ -80,6 +90,12 @@ npm start
 
 The server starts on port 3000 (or the value of the PORT environment variable).
 
+### Preview with local demo data
+
+With MongoDB running, use `npm run seed:demo` to create a clearly labelled set of sample accounts, listings, offers, orders, reviews, notifications, saved searches, and other marketplace activity. The script prints a randomly generated password for the demo student and seller accounts. It is disabled when `NODE_ENV=production`; running it again refreshes activity for those reserved demo accounts.
+
+For Docker Compose, add `GEMINI_API_KEY` (and optionally `GEMINI_MODEL`) to the root `.env` file and rebuild the app container with `docker compose up -d --build app`. Then seed the local database with `docker compose exec app npm run seed:demo`.
+
 ### Verifying the Server
 
 ```bash
@@ -128,6 +144,8 @@ Copy `.env.example` to `.env` and configure the following:
 | `COOKIE_SAME_SITE` | No | lax \| strict \| none |
 | `CORS_ORIGIN` | No | Allowed origin for CORS |
 | `LOG_LEVEL` | No | error \| warn \| info \| debug |
+| `GEMINI_API_KEY` | No | Server-side key for Gemini-powered marketplace tools |
+| `GEMINI_MODEL` | No | Gemini model (default: `gemini-3.8-flash`) |
 
 ---
 
@@ -140,30 +158,26 @@ All endpoints are prefixed with `/api/v1`.
 | GET | `/api/v1/health` | Liveness probe |
 | GET | `/api/v1/ready` | Readiness probe (MongoDB check) |
 
-Additional endpoints are added in later phases:
-
-| Phase | Endpoints Added |
-|-------|----------------|
-| Phase 3 | `/auth/*`, `/users/me` |
-| Phase 4 | `/products/*`, `/categories/*`, `/reports/*` |
-| Phase 6 | `/admin/*` |
+| Method | Path | Description |
+|--------|------|-------------|
+| `*` | `/api/v1/auth/*` | Registration, login, and logout |
+| `*` | `/api/v1/users/*` | User account and profile operations |
+| `*` | `/api/v1/products/*` | Listing search, management, and status |
+| `*` | `/api/v1/categories/*` | Marketplace categories |
+| `*` | `/api/v1/reports/*` | Listing reports |
+| `*` | `/api/v1/messages/*` | Buyer-seller messaging |
+| `*` | `/api/v1/features/*` | Wishlist, offers, orders, reviews, notifications, saved searches, and AI |
+| `*` | `/api/v1/admin/*` | Administration and report review |
 
 ---
 
-## Development Roadmap
+## Implementation status
 
-| Phase | Status | Description |
-|-------|--------|-------------|
-| Phase 1 | Complete | Architecture blueprint |
-| Phase 2 | Complete | Backend foundation (this phase) |
-| Phase 3 | Pending | MongoDB models + JWT authentication |
-| Phase 4 | Pending | Marketplace / product functionality |
-| Phase 5 | Pending | EJS frontend |
-| Phase 6 | Pending | Admin panel + production hardening |
-| Phase 7 | Pending | Docker + Docker Compose |
-| Phase 8 | Pending | AWS + Terraform |
-| Phase 9 | Pending | Ansible |
-| Phase 10 | Pending | Amazon ECR + GitHub Actions CI/CD |
+- Marketplace, campus activity, profile, moderation, and AI-assisted listing features are implemented.
+- AI features require a configured Gemini API key and a responding Gemini service; AI results are advisory.
+- Online payment processing is not configured. Orders show `not-integrated` payment status until a provider is selected and integrated.
+- College verification requests remain pending until an email delivery and verification service is configured.
+- Docker, Terraform, Ansible, and the existing GitHub Actions CI/CD workflows remain part of the deployment setup.
 
 ---
 

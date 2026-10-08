@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" class="h-100">
+<%- include('../partials/head', { title }) %>
+<body class="d-flex flex-column h-100 cm-bg cm-account-page">
+<%- include('../partials/navbar') %>
+<main class="flex-grow-1 py-4 py-lg-5">
+  <div class="container">
+    <div class="cm-account-heading d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
+      <div>
+        <p class="cm-eyebrow mb-2">YOUR CAMPUS ACCOUNT</p>
+        <h1 class="cm-page-title mb-1">My Marketplace</h1>
+        <p class="text-muted mb-0">Keep track of your activity, saved items, and campus connections.</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="/my-listings" class="btn btn-light cm-account-quick-link"><i class="bi bi-box-seam me-2"></i>My listings</a>
+        <a href="/inbox" class="btn btn-light cm-account-quick-link"><i class="bi bi-chat-dots me-2"></i>Inbox</a>
+        <a href="/post" class="btn cm-btn-primary"><i class="bi bi-plus-lg me-1"></i>Post an item</a>
+      </div>
+    </div>
+
+    <div id="featureAlert" class="alert d-none" role="alert"></div>
+    <%
+      const unreadCount = notifications.filter((item) => !item.readAt).length;
+      const activeOrderCount = orders.filter((item) => item.status === 'active').length;
+      const pendingOfferCount = offers.filter((item) => item.status === 'pending' && item.toUser && String(item.toUser._id) === String(user._id)).length;
+    %>
+
+    <div class="cm-account-layout">
+      <aside class="cm-account-sidebar">
+        <div class="cm-account-nav-title">ACCOUNT MENU</div>
+        <div class="nav nav-pills cm-account-tabs" id="marketplaceTabs" role="tablist" aria-orientation="vertical">
+          <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">
+            <i class="bi bi-grid-1x2"></i><span>Overview</span>
+          </button>
+          <button class="nav-link" id="wishlist-tab" data-bs-toggle="pill" data-bs-target="#wishlist" type="button" role="tab" aria-controls="wishlist" aria-selected="false">
+            <i class="bi bi-heart"></i><span>Wishlist</span><span class="cm-tab-count"><%= wishlist.length %></span>
+          </button>
+          <button class="nav-link" id="orders-tab" data-bs-toggle="pill" data-bs-target="#orders" type="button" role="tab" aria-controls="orders" aria-selected="false">
+            <i class="bi bi-receipt"></i><span>Orders & offers</span><% if (pendingOfferCount) { %><span class="cm-tab-count cm-count-accent"><%= pendingOfferCount %></span><% } %>
+          </button>
+          <button class="nav-link" id="discover-tab" data-bs-toggle="pill" data-bs-target="#discover" type="button" role="tab" aria-controls="discover" aria-selected="false">
+            <i class="bi bi-compass"></i><span>Discover</span>
+          </button>
+          <button class="nav-link" id="notifications-tab" data-bs-toggle="pill" data-bs-target="#notifications" type="button" role="tab" aria-controls="notifications" aria-selected="false">
+            <i class="bi bi-bell"></i><span>Notifications</span><% if (unreadCount) { %><span class="cm-tab-count cm-count-alert"><%= unreadCount %></span><% } %>
+          </button>
+          <button class="nav-link" id="community-tab" data-bs-toggle="pill" data-bs-target="#community" type="button" role="tab" aria-controls="community" aria-selected="false">
+            <i class="bi bi-people"></i><span>Interests & privacy</span>
+          </button>
+        </div>
+        <div class="cm-account-sidebar-note">
+          <i class="bi bi-shield-check"></i>
+          <span>Trade safely. Meet on campus and confirm handovers in person.</span>
+        </div>
+      </aside>
+
+      <div class="tab-content cm-account-content" id="marketplaceTabContent">
+        <section class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab" tabindex="0">
+          <div class="cm-panel-heading">
+            <div><p class="cm-eyebrow mb-1">YOUR ACTIVITY</p><h2 class="h4 mb-0">Welcome back, <%= user.name.split(' ')[0] %></h2></div>
+            <a href="/profile" class="cm-link small fw-semibold">Edit profile <i class="bi bi-arrow-right"></i></a>
+          </div>
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3"><div class="cm-account-stat"><span class="cm-account-stat-icon"><i class="bi bi-heart"></i></span><span class="cm-account-stat-value"><%= wishlist.length %></span><span class="cm-account-stat-label">Saved items</span></div></div>
+            <div class="col-6 col-xl-3"><div class="cm-account-stat"><span class="cm-account-stat-icon cm-stat-icon-teal"><i class="bi bi-receipt"></i></span><span class="cm-account-stat-value"><%= activeOrderCount %></span><span class="cm-account-stat-label">Active orders</span></div></div>
+            <div class="col-6 col-xl-3"><div class="cm-account-stat"><span class="cm-account-stat-icon cm-stat-icon-amber"><i class="bi bi-arrow-left-right"></i></span><span class="cm-account-stat-value"><%= pendingOfferCount %></span><span class="cm-account-stat-label">Offers to review</span></div></div>
+            <div class="col-6 col-xl-3"><div class="cm-account-stat"><span class="cm-account-stat-icon cm-stat-icon-blue"><i class="bi bi-bell"></i></span><span class="cm-account-stat-value"><%= unreadCount %></span><span class="cm-account-stat-label">Unread updates</span></div></div>
+          </div>
+
+          <div class="cm-account-card mb-4">
+            <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
+              <div><h3 class="h6 fw-bold mb-1">Recent notifications</h3><p class="small text-muted mb-0">Updates about messages, listings, offers, and orders.</p></div>
+              <button class="btn btn-sm btn-light flex-shrink-0" data-mark-notifications-read>Mark all read</button>
+            </div>
+            <% if (notifications.length) { %>
+              <% notifications.slice(0, 4).forEach(function(n) { %>
+                <div class="cm-notification-row <%= n.readAt ? '' : 'is-unread' %>">
+                  <span class="cm-notification-dot"></span><div class="flex-grow-1"><p class="mb-1"><%= n.content %></p><small class="text-muted"><%= new Date(n.createdAt).toLocaleString('en-IN') %></small></div>
+                </div>
+              <% }); %>
+              <button class="btn btn-link btn-sm p-0 mt-3" type="button" data-open-tab="notifications">View all notifications <i class="bi bi-arrow-right"></i></button>
+            <% } else { %>
+              <div class="cm-inline-empty"><i class="bi bi-bell"></i><span>You’re all caught up. New marketplace updates will appear here.</span></div>
+            <% } %>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6"><a class="cm-feature-link-card" href="/my-listings"><span class="cm-feature-link-icon"><i class="bi bi-box-seam"></i></span><span><strong>Manage your listings</strong><small>Update, pause, or mark your items as sold.</small></span><i class="bi bi-arrow-up-right ms-auto"></i></a></div>
+            <div class="col-md-6"><a class="cm-feature-link-card" href="/profile"><span class="cm-feature-link-icon cm-feature-icon-teal"><i class="bi bi-person-badge"></i></span><span><strong>Build your student profile</strong><small>Manage your details and seller reputation.</small></span><i class="bi bi-arrow-up-right ms-auto"></i></a></div>
+          </div>
+        </section>
+
+        <section class="tab-pane fade" id="wishlist" role="tabpanel" aria-labelledby="wishlist-tab" tabindex="0">
+          <div class="cm-panel-heading"><div><p class="cm-eyebrow mb-1">SAVED FOR LATER</p><h2 class="h4 mb-0">Your wishlist <span class="badge cm-soft-badge ms-1"><%= wishlist.length %></span></h2></div><a href="/" class="btn btn-sm cm-btn-outline"><i class="bi bi-search me-1"></i>Browse listings</a></div>
+          <% if (wishlist.length) { %><div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-3"><% wishlist.forEach(function(product) { %><div class="col"><%- include('../partials/product-card', { product }) %><button class="btn btn-sm btn-outline-danger mt-2 w-100" data-remove-wishlist="<%= product._id %>"><i class="bi bi-heartbreak me-1"></i>Remove from wishlist</button></div><% }); %></div><% } else { %><div class="cm-empty-panel"><span class="cm-empty-icon"><i class="bi bi-heart"></i></span><h3 class="h6 fw-bold">Your wishlist is empty</h3><p class="text-muted mb-3">Save interesting listings with the heart button and compare them later.</p><a href="/" class="btn btn-sm cm-btn-primary">Explore the marketplace</a></div><% } %>
+        </section>
+
+        <section class="tab-pane fade" id="orders" role="tabpanel" aria-labelledby="orders-tab" tabindex="0">
+          <div class="cm-panel-heading"><div><p class="cm-eyebrow mb-1">BUYING ON CAMPUS</p><h2 class="h4 mb-0">Orders & offers</h2></div><span class="small text-muted"><%= orders.length %> orders · <%= offers.length %> offers</span></div>
+          <div class="cm-section-label"><i class="bi bi-arrow-left-right me-2"></i>Offers and exchanges</div>
+          <% offers.forEach(function(offer) { %>
+            <div class="cm-account-card cm-record-card mb-2">
+              <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                <div><div class="d-flex align-items-center gap-2 mb-1"><strong><%= offer.kind === 'exchange' ? 'Exchange proposal' : `Price offer · ₹${offer.amount}` %></strong><span class="badge cm-status-pill status-<%= offer.status %>"><%= offer.status %></span></div><p class="small text-muted mb-1">For <%= offer.product ? offer.product.title : 'listing' %><% if (offer.exchangeProduct) { %> · offering <%= offer.exchangeProduct.title %><% } %></p><small class="text-muted"><%= offer.fromUser ? offer.fromUser.name : 'Campus member' %> → <%= offer.toUser ? offer.toUser.name : 'Campus member' %></small></div>
+                <% if (offer.status === 'pending' && offer.toUser && String(offer.toUser._id) === String(user._id)) { %><div class="d-flex gap-2 align-items-start flex-wrap"><button class="btn btn-sm btn-success" data-offer-action="accept" data-offer-id="<%= offer._id %>"><i class="bi bi-check2 me-1"></i>Accept</button><button class="btn btn-sm btn-outline-danger" data-offer-action="reject" data-offer-id="<%= offer._id %>">Decline</button><button class="btn btn-sm btn-outline-primary" data-offer-action="counter" data-offer-id="<%= offer._id %>">Counter</button></div><% } %>
+              </div>
+            </div>
+          <% }); %>
+          <% if (!offers.length) { %><div class="cm-inline-empty mb-4"><i class="bi bi-arrow-left-right"></i><span>No offers yet. Use “Make an offer” on a listing to start negotiating.</span></div><% } %>
+
+          <div class="cm-section-label mt-4"><i class="bi bi-box-seam me-2"></i>Orders & campus pickup</div>
+          <% orders.forEach(function(order) { %>
+            <div class="cm-account-card cm-record-card mb-3">
+              <div class="d-flex align-items-start justify-content-between gap-3 mb-3"><div><h3 class="h6 fw-bold mb-1"><%= order.product ? order.product.title : 'Listing' %></h3><small class="text-muted">Order placed <%= new Date(order.createdAt).toLocaleDateString('en-IN') %></small></div><span class="badge cm-status-pill status-<%= order.status %>"><%= order.status %></span></div>
+              <div class="cm-payment-note"><i class="bi bi-info-circle me-2"></i>Payment: <strong><%= order.paymentStatus %></strong> <span>· Online payment is not connected yet.</span></div>
+              <% if (order.status === 'active') { %>
+                <div class="row g-2 align-items-end mt-2">
+                  <div class="col-sm-5"><label class="form-label small fw-semibold" for="pickup-<%= order._id %>">Campus pickup time</label><input id="pickup-<%= order._id %>" type="datetime-local" class="form-control form-control-sm" data-pickup-time="<%= order._id %>"></div>
+                  <div class="col-sm-auto"><button class="btn btn-sm btn-outline-primary" data-schedule-pickup="<%= order._id %>">Schedule pickup</button></div>
+                  <% if (String(order.buyer._id) === String(user._id)) { %><div class="col-sm-auto"><button class="btn btn-sm cm-btn-primary" data-create-qr="<%= order._id %>"><i class="bi bi-qr-code me-1"></i>Show handover QR</button></div><div class="col-12" id="qr-<%= order._id %>"></div><% } else { %><div class="col-12"><div class="input-group input-group-sm"><input class="form-control" data-complete-token="<%= order._id %>" placeholder="Scan or paste buyer's handover code"><button class="btn btn-success" data-complete-order="<%= order._id %>">Confirm handover</button></div><button type="button" class="btn btn-sm btn-link px-0 mt-1" data-scan-qr="<%= order._id %>"><i class="bi bi-camera me-1"></i>Scan buyer QR with camera</button><video class="d-none mt-2" data-qr-camera="<%= order._id %>" playsinline style="max-width:360px"></video></div><% } %>
+                  <div class="col-12"><button class="btn btn-sm btn-outline-danger" data-cancel-order="<%= order._id %>">Cancel order</button></div>
+                </div>
+              <% } %>
+              <% if (order.status === 'completed' && String(order.buyer._id) === String(user._id)) { %><form class="row g-2 mt-2" data-review-order="<%= order._id %>"><div class="col-sm-3"><select class="form-select form-select-sm" name="type"><option value="seller">Seller review</option><option value="product">Product review</option></select></div><div class="col-sm-2"><select class="form-select form-select-sm" name="rating"><option value="5">5 stars</option><option value="4">4 stars</option><option value="3">3 stars</option><option value="2">2 stars</option><option value="1">1 star</option></select></div><div class="col"><input class="form-control form-control-sm" name="text" maxlength="1000" placeholder="Write a review"></div><div class="col-sm-auto"><button class="btn btn-sm cm-btn-primary">Submit review</button></div></form><% } %>
+            </div>
+          <% }); %>
+          <% if (!orders.length) { %><div class="cm-inline-empty"><i class="bi bi-receipt"></i><span>Accepted offers and reservations will show here. Payments stay outside the app until a provider is configured.</span></div><% } %>
+        </section>
+
+        <section class="tab-pane fade" id="discover" role="tabpanel" aria-labelledby="discover-tab" tabindex="0">
+          <div class="cm-panel-heading"><div><p class="cm-eyebrow mb-1">FIND YOUR NEXT ITEM</p><h2 class="h4 mb-0">Discover & compare</h2></div><a href="/" class="btn btn-sm cm-btn-outline">Browse listings</a></div>
+          <% if (compareProducts.length) { %>
+            <div class="cm-account-card mb-4"><div class="d-flex justify-content-between align-items-center mb-3"><div><h3 class="h6 fw-bold mb-1">Product comparison</h3><p class="small text-muted mb-0">Compare key details side by side.</p></div><button class="btn btn-sm btn-light" data-clear-compare>Clear selection</button></div><div class="table-responsive"><table class="table cm-compare-table align-middle mb-0"><thead><tr><th>Feature</th><% compareProducts.forEach(function(item) { %><th><a href="/listings/<%= item._id %>" class="cm-link"><%= item.title %></a></th><% }); %></tr></thead><tbody><% [['Price', p => `₹${p.price}`], ['Condition', p => p.condition], ['Category', p => p.category ? p.category.name : '—'], ['Seller', p => p.seller.name], ['College', p => p.seller.college || '—'], ['Verified student', p => p.seller.collegeVerified ? 'Yes' : 'No'], ['Seller rating', p => p.sellerRating.average ? `${p.sellerRating.average.toFixed(1)} (${p.sellerRating.count})` : 'No ratings']].forEach(function(row) { %><tr><th><%= row[0] %></th><% compareProducts.forEach(function(item) { %><td><%= row[1](item) %></td><% }); %></tr><% }); %><% const extraKeys = [...new Set(compareProducts.flatMap(p => p.details ? (p.details instanceof Map ? [...p.details.keys()] : Object.keys(p.details)) : []))]; %><% extraKeys.forEach(function(key) { %><tr><th class="text-capitalize"><%= key %></th><% compareProducts.forEach(function(item) { %><td><%= item.details instanceof Map ? item.details.get(key) || '—' : item.details && item.details[key] || '—' %></td><% }); %></tr><% }); %></tbody></table></div></div>
+          <% } else { %><div class="cm-inline-empty mb-4"><i class="bi bi-columns-gap"></i><span>Open a listing and choose “Add to comparison”. Select at least two items to compare.</span></div><% } %>
+
+          <div class="cm-account-card mb-4"><div class="mb-3"><h3 class="h6 fw-bold mb-1">Saved searches</h3><p class="small text-muted mb-0">Get an in-app notification when a matching listing is posted.</p></div><form id="saveSearchForm" class="row g-2 mb-3"><div class="col-md-3"><input class="form-control" name="title" placeholder="Search name" maxlength="120" required></div><div class="col-md-3"><input class="form-control" name="q" placeholder="Keywords"></div><div class="col-md-2"><input class="form-control" name="minPrice" type="number" min="0" placeholder="Min price"></div><div class="col-md-2"><input class="form-control" name="maxPrice" type="number" min="0" placeholder="Max price"></div><div class="col-md-2"><button class="btn cm-btn-primary w-100">Save search</button></div></form><div class="list-group list-group-flush"><% savedSearches.forEach(function(search) { %><div class="list-group-item px-0 d-flex justify-content-between align-items-center gap-3"><span><strong><%= search.title %></strong><small class="d-block text-muted"><%= Object.entries(search.filters || {}).map(([k,v]) => `${k}: ${v}`).join(' · ') %></small></span><div class="d-flex gap-2"><a class="btn btn-sm btn-light" href="/?<%= new URLSearchParams(search.filters || {}).toString() %>">Run search</a><button class="btn btn-sm btn-outline-danger" data-delete-search="<%= search._id %>" aria-label="Delete <%= search.title %>"><i class="bi bi-trash"></i></button></div></div><% }); %><% if (!savedSearches.length) { %><div class="cm-inline-empty"><i class="bi bi-bookmark"></i><span>You haven’t saved a search yet.</span></div><% } %></div></div>
+
+          <div class="cm-account-card"><div class="d-flex align-items-center justify-content-between gap-3 mb-3"><div><h3 class="h6 fw-bold mb-1">Recently viewed</h3><p class="small text-muted mb-0">Pick up where you left off.</p></div><span class="small text-muted"><%= recentlyViewed.length %> listings</span></div><% if (recentlyViewed.length) { %><div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-3"><% recentlyViewed.slice(0, 6).forEach(function(product) { %><div class="col"><%- include('../partials/product-card', { product }) %></div><% }); %></div><% } else { %><div class="cm-inline-empty"><i class="bi bi-clock-history"></i><span>Listings you open will appear here.</span></div><% } %></div>
+        </section>
+
+        <section class="tab-pane fade" id="notifications" role="tabpanel" aria-labelledby="notifications-tab" tabindex="0">
+          <div class="cm-panel-heading"><div><p class="cm-eyebrow mb-1">STAY IN THE LOOP</p><h2 class="h4 mb-0">Notification center</h2></div><button class="btn btn-sm btn-light" data-mark-notifications-read><i class="bi bi-check2-all me-1"></i>Mark all read</button></div>
+          <div class="cm-account-card"><% if (notifications.length) { %><% notifications.forEach(function(n) { %><div class="cm-notification-row <%= n.readAt ? '' : 'is-unread' %>"><span class="cm-notification-dot"></span><div class="flex-grow-1"><p class="mb-1"><%= n.content %></p><small class="text-muted"><%= new Date(n.createdAt).toLocaleString('en-IN') %></small></div><% if (n.product) { %><a class="btn btn-sm btn-light" href="/listings/<%= n.product._id %>">View</a><% } %></div><% }); %><% } else { %><div class="cm-empty-panel"><span class="cm-empty-icon"><i class="bi bi-bell"></i></span><h3 class="h6 fw-bold">No notifications yet</h3><p class="text-muted mb-0">Messages, offer updates, order activity, saved searches, and price drops will appear here.</p></div><% } %></div>
+        </section>
+
+        <section class="tab-pane fade" id="community" role="tabpanel" aria-labelledby="community-tab" tabindex="0">
+          <div class="cm-panel-heading"><div><p class="cm-eyebrow mb-1">MAKE IT YOUR CAMPUS</p><h2 class="h4 mb-0">Interests & privacy</h2></div><a href="/profile" class="cm-link small fw-semibold">Profile & verification <i class="bi bi-arrow-right"></i></a></div>
+          <div class="cm-account-card mb-4"><div class="mb-3"><h3 class="h6 fw-bold mb-1">Your interests</h3><p class="small text-muted mb-0">Choose categories to personalize marketplace recommendations.</p></div><form id="interestsForm" class="d-flex flex-wrap gap-2"><% categories.forEach(function(category) { %><label class="cm-interest-option"><input type="checkbox" value="<%= category._id %>" <%= interests.some(i => String(i._id) === String(category._id)) ? 'checked' : '' %>><span><%= category.name %></span></label><% }); %><div class="w-100 pt-2"><button class="btn btn-sm cm-btn-primary"><i class="bi bi-check2 me-1"></i>Save interests</button></div></form></div>
+          <div class="cm-account-card"><div class="mb-3"><h3 class="h6 fw-bold mb-1">Blocked users</h3><p class="small text-muted mb-0">Blocked users can’t message you and their listings are hidden.</p></div><% if (blocks.length) { %><div class="list-group list-group-flush"><% blocks.forEach(function(block) { %><div class="list-group-item px-0 d-flex align-items-center justify-content-between"><span><i class="bi bi-person-slash text-muted me-2"></i><%= block.targetUser ? block.targetUser.name : 'User' %><small class="d-block text-muted ms-4"><%= block.targetUser && block.targetUser.college ? block.targetUser.college : 'Campus member' %></small></span><button class="btn btn-sm btn-outline-secondary" data-unblock="<%= block.targetUser._id %>">Unblock</button></div><% }); %></div><% } else { %><div class="cm-inline-empty"><i class="bi bi-shield-check"></i><span>No blocked users. You can block someone from their listing page.</span></div><% } %></div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</main>
+<%- include('../partials/footer') %>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/account-features.js"></script>
+</body>
+</html>

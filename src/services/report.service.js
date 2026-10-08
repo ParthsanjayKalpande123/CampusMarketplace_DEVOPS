@@ -14,6 +14,7 @@
 const Report  = require('../models/Report');
 const Product = require('../models/Product');
 const { NotFoundError, ConflictError, AppError } = require('../utils/errors');
+const CampusRecord = require('../models/CampusRecord');
 
 /**
  * Creates a report for a product listing.
@@ -49,10 +50,17 @@ async function createReport(reportedBy, productId, data) {
   }
 
   const report = await Report.create({
+    targetType: 'listing',
     product:     productId,
     reportedBy,
     reason:      data.reason,
     description: data.description || null,
+  });
+  await CampusRecord.create({
+    owner: product.seller,
+    type: 'notification',
+    product: product._id,
+    content: `A listing was reported for ${data.reason}. Admin review is pending.`,
   });
 
   return report;
@@ -78,6 +86,7 @@ async function getReports(filters = {}) {
     Report.find(filter)
       .populate('product',    'title status')
       .populate('reportedBy', 'name email')
+      .populate('reportedSeller', 'name college')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum),

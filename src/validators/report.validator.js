@@ -14,6 +14,10 @@ const REASON_VALUES = [
   'wrong_price',
   'item_unavailable',
   'fraud',
+  'harassment',
+  'misleading_information',
+  'off_platform_payment',
+  'fake_listing',
   'other',
 ];
 

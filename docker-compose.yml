@@ -39,6 +39,8 @@ services:
       COOKIE_SAME_SITE: lax
       CORS_ORIGIN:     ${CORS_ORIGIN:-http://localhost:3000}
       LOG_LEVEL:       ${LOG_LEVEL:-info}
+      GEMINI_API_KEY:  ${GEMINI_API_KEY:-}
+      GEMINI_MODEL:    ${GEMINI_MODEL:-gemini-3.8-flash}
     depends_on:
       mongodb:
         condition: service_healthy

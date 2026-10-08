@@ -26,7 +26,9 @@ const categoryService = require('../services/category.service');
 const adminService    = require('../services/admin.service');
 const reportService   = require('../services/report.service');
 const messageService  = require('../services/message.service');
+const campusFeatures  = require('../services/campus-feature.service');
 const User            = require('../models/User');
+const Product         = require('../models/Product');
 const { NotFoundError, AuthorizationError } = require('../utils/errors');
 
 const router = Router();
@@ -39,8 +41,21 @@ router.use(setLocals);
 // ------------------------------------------------------------------
 router.get('/', async (req, res, next) => {
   try {
-    const { products, pagination } = await productService.getProducts(req.query);
+    const { products, pagination } = await productService.getProducts(req.query, req.user && req.user._id);
     const categories = await categoryService.getActiveCategories();
+    let recommendations = [];
+    if (req.user && !req.query.q && !req.query.category) {
+      const account = await User.findById(req.user._id).select('interests');
+      if (account.interests.length) {
+        const hiddenSellerIds = await campusFeatures.getHiddenUserIds(req.user._id);
+        recommendations = await Product.find({
+          category: { $in: account.interests },
+          status: 'available',
+          seller: { $nin: hiddenSellerIds },
+        }).populate('seller', 'name college collegeVerified').populate('category', 'name')
+          .sort({ createdAt: -1 }).limit(4).lean();
+      }
+    }
 
     return res.render('pages/index', {
       title: 'Campus Marketplace — Buy, Sell & Exchange on Campus',
@@ -48,6 +63,7 @@ router.get('/', async (req, res, next) => {
       pagination,
       categories,
       query: req.query,
+      recommendations,
     });
   } catch (err) {
     return next(err);
@@ -109,10 +125,46 @@ router.get('/my-listings', requireAuth, async (req, res, next) => {
 // ------------------------------------------------------------------
 // GET /profile — User profile (auth required)
 // ------------------------------------------------------------------
-router.get('/profile', requireAuth, (req, res) => {
-  return res.render('pages/profile', {
-    title: 'My Profile — Campus Marketplace',
-  });
+router.get('/profile', requireAuth, async (req, res, next) => {
+  try {
+    const profileStats = await campusFeatures.getProfileStats(req.user._id);
+    return res.render('pages/profile', {
+      title: 'My Profile — Campus Marketplace',
+      profileStats,
+    });
+  } catch (err) {
+    return next(err);
+  }
+});
+
+router.get('/account/features', requireAuth, async (req, res, next) => {
+  try {
+    const [wishlist, recentlyViewed, savedSearches, notifications, offers, orders, categories, interests, blocks] = await Promise.all([
+      campusFeatures.getWishlist(req.user._id),
+      campusFeatures.getRecentlyViewed(req.user._id),
+      campusFeatures.getRecords(req.user._id, 'saved-search'),
+      campusFeatures.getNotifications(req.user._id),
+      campusFeatures.getOffers(req.user._id),
+      campusFeatures.getOrders(req.user._id),
+      categoryService.getActiveCategories(),
+      User.findById(req.user._id).populate('interests', 'name').lean().then((account) => account.interests || []),
+      campusFeatures.getBlocks(req.user._id),
+    ]);
+    const compareIds = String(req.query.compare || '').split(',').filter((id) => mongoose.Types.ObjectId.isValid(id)).slice(0, 4);
+    const hiddenSellerIds = await campusFeatures.getHiddenUserIds(req.user._id);
+    const compareProducts = compareIds.length >= 2
+      ? await Product.find({ _id: { $in: compareIds }, status: 'available', seller: { $nin: hiddenSellerIds } })
+        .populate('seller', 'name college collegeVerified').populate('category', 'name').lean()
+      : [];
+    const compareRatings = await Promise.all(compareProducts.map((item) => campusFeatures.getSellerRating(item.seller._id)));
+    return res.render('pages/account-features', {
+      title: 'My Marketplace — Campus Marketplace',
+      wishlist, recentlyViewed, savedSearches, notifications, offers, orders, categories, interests, blocks,
+      compareProducts: compareProducts.map((item, index) => ({ ...item, sellerRating: compareRatings[index] })),
+    });
+  } catch (err) {
+    return next(err);
+  }
 });
 
 // ------------------------------------------------------------------
@@ -162,17 +214,30 @@ router.get('/listings/:id', async (req, res, next) => {
     }
 
     const product    = await productService.getProductById(req.params.id);
+    if (req.user && await campusFeatures.isBlocked(req.user._id, product.seller._id)) {
+      return next(new NotFoundError('Product'));
+    }
     const categories = await categoryService.getActiveCategories();
-
-    // Determine if current user is the seller
+    if (req.user) await campusFeatures.addRecentlyViewed(req.user._id, product._id);
     const isOwner = res.locals.isAuthenticated &&
       product.seller._id.toString() === res.locals.user._id.toString();
+
+    const [similarProducts, productReviews, sellerRating, myProducts] = await Promise.all([
+      campusFeatures.getSimilarProducts(product._id, req.user && req.user._id),
+      campusFeatures.getProductReviews(product._id),
+      campusFeatures.getSellerRating(product.seller._id),
+      req.user && !isOwner ? productService.getMyProducts(req.user._id) : Promise.resolve([]),
+    ]);
 
     return res.render('pages/product', {
       title: `${product.title} — Campus Marketplace`,
       product,
       categories,
       isOwner,
+      similarProducts,
+      productReviews,
+      sellerRating,
+      myProducts,
     });
   } catch (err) {
     return next(err);
