@@ -63,4 +63,12 @@
       </div>
     </div>
   </a>
+  <% if (typeof isAuthenticated !== 'undefined' && isAuthenticated && product.status === 'available') { %>
+    <div class="d-flex gap-2 mt-2">
+      <button class="btn btn-sm btn-outline-danger" type="button" data-add-wishlist="<%= product._id %>" aria-label="Add <%= product.title %> to wishlist">
+        <i class="bi bi-heart"></i> Wishlist
+      </button>
+      <button class="btn btn-sm btn-outline-secondary" type="button" data-compare-product="<%= product._id %>">Compare</button>
+    </div>
+  <% } %>
 </div>

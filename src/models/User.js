@@ -17,7 +17,7 @@
 
 const mongoose = require('mongoose');
 
-const { Schema } = mongoose;
+const { Schema, Types } = mongoose;
 
 const userSchema = new Schema(
   {
@@ -67,6 +67,42 @@ const userSchema = new Schema(
       trim: true,
       maxlength: [200, 'College name cannot exceed 200 characters.'],
       default: null,
+    },
+
+    collegeEmail: {
+      type: String,
+      lowercase: true,
+      trim: true,
+      default: null,
+    },
+
+    department: {
+      type: String,
+      trim: true,
+      maxlength: [120, 'Department cannot exceed 120 characters.'],
+      default: null,
+    },
+
+    year: {
+      type: String,
+      trim: true,
+      maxlength: [40, 'Year cannot exceed 40 characters.'],
+      default: null,
+    },
+
+    collegeVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    interests: {
+      type: [{ type: Types.ObjectId, ref: 'Category' }],
+      default: [],
+    },
+
+    emailVerification: {
+      tokenHash: { type: String, select: false, default: null },
+      expiresAt: { type: Date, default: null },
     },
 
     /**

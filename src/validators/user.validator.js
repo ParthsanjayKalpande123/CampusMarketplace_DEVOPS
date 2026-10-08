@@ -40,6 +40,18 @@ const updateProfileRules = [
     .isURL()
     .withMessage('Profile image must be a valid URL.'),
 
+  body('department')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 120 })
+    .withMessage('Department cannot exceed 120 characters.'),
+
+  body('year')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 40 })
+    .withMessage('Year cannot exceed 40 characters.'),
+
   // Explicitly reject disallowed fields
   body('email')
     .not()

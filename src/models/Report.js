@@ -20,6 +20,10 @@ const REASON_VALUES = [
   'wrong_price',
   'item_unavailable',
   'fraud',
+  'harassment',
+  'misleading_information',
+  'off_platform_payment',
+  'fake_listing',
   'other',
 ];
 
@@ -30,13 +34,25 @@ const reportSchema = new Schema(
     product: {
       type: Types.ObjectId,
       ref: 'Product',
-      required: [true, 'Product reference is required.'],
+      default: null,
+    },
+
+    reportedSeller: {
+      type: Types.ObjectId,
+      ref: 'User',
+      default: null,
     },
 
     reportedBy: {
       type: Types.ObjectId,
       ref: 'User',
       required: [true, 'Reporter reference is required.'],
+    },
+
+    targetType: {
+      type: String,
+      enum: ['listing', 'seller'],
+      default: 'listing',
     },
 
     reason: {
@@ -80,7 +96,14 @@ const reportSchema = new Schema(
 // ------------------------------------------------------------------
 
 // Prevent one user from reporting the same product more than once
-reportSchema.index({ product: 1, reportedBy: 1 }, { unique: true });
+reportSchema.index(
+  { product: 1, reportedBy: 1 },
+  { unique: true, partialFilterExpression: { product: { $type: 'objectId' } } }
+);
+reportSchema.index(
+  { reportedSeller: 1, reportedBy: 1 },
+  { unique: true, partialFilterExpression: { reportedSeller: { $type: 'objectId' } } }
+);
 
 // Admin dashboard — filter by status
 reportSchema.index({ status: 1, createdAt: -1 });

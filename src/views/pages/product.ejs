@@ -52,6 +52,7 @@
           <%
             const statusMap = {
               'available': ['bg-success',  'Available'],
+              'reserved':  ['bg-warning text-dark', 'Reserved'],
               'sold':      ['bg-secondary','Sold'],
               'exchanged': ['bg-info text-dark','Exchanged'],
               'inactive':  ['bg-warning text-dark','Inactive'],
@@ -66,12 +67,16 @@
               <i class="bi bi-arrow-left-right me-1"></i>Open to Exchange
             </span>
           <% } %>
+          <% if (product.listingType === 'free' || product.price === 0) { %><span class="badge bg-success cm-detail-badge">FREE</span><% } %>
+          <% if (product.listingType === 'lost' || product.listingType === 'found') { %><span class="badge bg-warning text-dark cm-detail-badge"><%= product.listingType.toUpperCase() %> ITEM</span><% } %>
+          <% if (product.seller.collegeVerified) { %><span class="badge bg-primary"><i class="bi bi-patch-check-fill"></i> Verified Student</span><% } %>
         </div>
 
         <h1 class="cm-product-detail-title mb-1"><%= product.title %></h1>
         <p class="text-muted small mb-3">
           Listed <%= product.createdAt ? new Date(product.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' }) : '' %>
         </p>
+        <% if (product.lostFoundDate) { %><p class="small text-muted">Lost/found date: <%= new Date(product.lostFoundDate).toLocaleDateString('en-IN') %></p><% } %>
 
         <div class="cm-detail-price mb-4">
           Rs. <%= product.price.toLocaleString('en-IN') %>
@@ -81,6 +86,7 @@
         <div class="mb-4">
           <h2 class="cm-detail-section-title">Description</h2>
           <p class="cm-detail-description"><%= product.description %></p>
+          <% if (product.tags && product.tags.length) { %><div class="d-flex flex-wrap gap-1"><% product.tags.forEach(function(tag) { %><span class="badge bg-light text-dark">#<%= tag %></span><% }); %></div><% } %>
         </div>
 
         <!-- Location -->
@@ -88,6 +94,42 @@
           <div class="mb-4">
             <h2 class="cm-detail-section-title">Location</h2>
             <p class="mb-0"><i class="bi bi-geo-alt me-1 text-muted"></i><%= product.location %></p>
+          </div>
+        <% } %>
+        <% if (product.pickupLocation || product.pickupAvailability) { %>
+          <div class="mb-4">
+            <h2 class="cm-detail-section-title">Campus pickup</h2>
+            <% if (product.pickupLocation) { %><p class="mb-1"><strong>Location:</strong> <%= product.pickupLocation %></p><% } %>
+            <% if (product.pickupAvailability) { %><p class="mb-0"><strong>Availability:</strong> <%= product.pickupAvailability %></p><% } %>
+          </div>
+        <% } %>
+        <% if (product.details && product.details.size) { %>
+          <div class="mb-4"><h2 class="cm-detail-section-title">Item details</h2>
+            <dl class="row"><% for (const [key, value] of product.details) { %><dt class="col-4 text-capitalize"><%= key %></dt><dd class="col-8"><%= value %></dd><% } %></dl>
+          </div>
+        <% } %>
+        <section class="cm-credibility-card mb-4" aria-labelledby="credibilityTitle">
+          <div class="d-flex align-items-start gap-3">
+            <span class="cm-discover-icon cm-discover-icon-ai"><i class="bi bi-shield-check"></i></span>
+            <div class="flex-grow-1">
+              <h2 class="h6 fw-bold mb-1" id="credibilityTitle">AI listing credibility check</h2>
+              <p class="small text-muted mb-3">Check the title, price, description, and item details for signs that need a closer look. This is only an advisory signal—not proof that an item is genuine or fake.</p>
+              <% if (isAuthenticated) { %>
+                <button class="btn btn-sm btn-outline-primary" type="button" id="checkListingCredibility" data-product-id="<%= product._id %>">
+                  <i class="bi bi-shield-check me-1"></i>Check this listing
+                </button>
+                <div id="listingCredibilityResult" class="mt-3" aria-live="polite"></div>
+              <% } else { %>
+                <a class="btn btn-sm btn-outline-primary" href="/login?redirect=/listings/<%= product._id %>">Sign in to check this listing</a>
+              <% } %>
+            </div>
+          </div>
+        </section>
+        <% if (isAuthenticated) { %>
+          <div class="mb-4">
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-compare-add="<%= product._id %>">Add to comparison</button>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-compare-open>Compare selected</button>
+            <span class="small text-muted ms-2" data-compare-count aria-live="polite"></span>
           </div>
         <% } %>
 
@@ -103,6 +145,7 @@
               <% if (product.seller.college) { %>
                 <p class="text-muted small mb-0"><%= product.seller.college %></p>
               <% } %>
+              <p class="small mb-0">Seller rating: <%= sellerRating.average ? `${sellerRating.average.toFixed(1)} / 5 (${sellerRating.count})` : 'No reviews yet' %></p>
             </div>
           </div>
           <% if (product.seller.phone) { %>
@@ -117,6 +160,7 @@
         <!-- Action buttons -->
         <% if (isOwner) { %>
           <div class="d-grid gap-2">
+            <% if (product.aiReviewStatus === 'pending-review') { %><div class="alert alert-warning">Flagged for administrator review: <%= product.aiRiskFlags.join(', ') %></div><% } %>
             <a href="/listings/<%= product._id %>/edit" class="btn cm-btn-primary">
               <i class="bi bi-pencil me-2"></i>Edit Listing
             </a>
@@ -140,12 +184,31 @@
             </button>
           </div>
         <% } else if (isAuthenticated && product.status === 'available') { %>
+          <button class="btn btn-outline-danger w-100 mb-2" type="button" data-add-wishlist="<%= product._id %>"><i class="bi bi-heart"></i> Add to Wishlist</button>
           <a
             href="/inbox?userId=<%= product.seller._id %>&productId=<%= product._id %>"
             class="btn cm-btn-primary w-100 mb-2"
           >
             <i class="bi bi-chat-left-text me-2"></i>Chat with Seller
           </a>
+          <form id="offerForm" class="card card-body mb-2">
+            <h2 class="h6">Make an offer</h2>
+            <label class="form-label small" for="offerAmount">Offer price (₹)</label>
+            <input class="form-control mb-2" id="offerAmount" type="number" min="0" max="999999" value="<%= product.price %>" required>
+            <% if (myProducts.length) { %>
+              <label class="form-label small" for="exchangeProduct">Or propose an exchange</label>
+              <select class="form-select mb-2" id="exchangeProduct"><option value="">Price offer</option>
+                <% myProducts.filter(p => p.status === 'available').forEach(function(ownProduct) { %>
+                  <option value="<%= ownProduct._id %>"><%= ownProduct.title %></option>
+                <% }); %>
+              </select>
+              <input class="form-control mb-2" id="additionalCash" type="number" min="0" placeholder="Optional extra cash (₹)">
+            <% } %>
+            <textarea class="form-control mb-2" id="offerMessage" maxlength="500" placeholder="Message to seller (optional)"></textarea>
+            <button class="btn cm-btn-primary" type="submit">Send offer</button>
+          </form>
+          <button class="btn btn-outline-secondary w-100 mb-2" type="button" id="reportSellerBtn" data-seller-id="<%= product.seller._id %>">Report seller</button>
+          <button class="btn btn-outline-dark w-100 mb-2" type="button" id="blockSellerBtn" data-seller-id="<%= product.seller._id %>">Block seller</button>
           <button
             class="btn btn-outline-warning w-100"
             data-action="report-product"
@@ -163,6 +226,22 @@
     </div><!-- /row -->
   </div><!-- /container -->
 </main>
+
+<% if (productReviews.length) { %>
+  <section class="container mb-5"><h2 class="h4">Product reviews</h2>
+    <% productReviews.forEach(function(review) { %>
+      <div class="border-bottom py-2"><strong><%= review.rating %>/5</strong> <%= review.text || 'Rating only' %> <span class="text-muted">— <%= review.author ? review.author.name : 'Student' %></span></div>
+    <% }); %>
+  </section>
+<% } %>
+
+<% if (similarProducts.length) { %>
+  <section class="container mb-5"><h2 class="h4">Similar listings</h2>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">
+      <% similarProducts.forEach(function(similar) { %><div class="col"><%- include('../partials/product-card', { product: similar }) %></div><% }); %>
+    </div>
+  </section>
+<% } %>
 
 <!-- Report Modal -->
 <% if (isAuthenticated && !isOwner) { %>

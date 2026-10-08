@@ -92,6 +92,11 @@ const config = {
     level: process.env.LOG_LEVEL || 'info',
   },
 
+  ai: {
+    geminiApiKey: process.env.GEMINI_API_KEY || '',
+    geminiModel: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+  },
+
   // Convenience flags — avoid comparing strings elsewhere
   isProduction: process.env.NODE_ENV === 'production',
   isDevelopment: process.env.NODE_ENV === 'development' || !process.env.NODE_ENV,

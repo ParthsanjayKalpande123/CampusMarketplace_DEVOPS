@@ -6,34 +6,125 @@
 <%- include('../partials/navbar') %>
 
 <!-- Hero search bar -->
-<section class="cm-hero py-5">
-  <div class="container text-center">
-    <h1 class="cm-hero-title mb-2">Find What You Need on Campus</h1>
-    <p class="cm-hero-subtitle mb-4">Buy, sell and exchange used items within your college community.</p>
-    <form class="cm-hero-search mx-auto" action="/" method="GET">
-      <div class="input-group input-group-lg">
-        <input
-          type="search"
-          name="q"
-          class="form-control"
-          placeholder="Search for textbooks, electronics, cycles..."
-          value="<%= query.q || '' %>"
-          aria-label="Search listings"
-        />
-        <button class="btn cm-btn-primary px-4" type="submit">Search</button>
+<section class="cm-hero py-4 py-lg-5">
+  <div class="container">
+    <div class="row align-items-center g-4">
+      <div class="col-lg-7 text-center text-lg-start">
+        <p class="cm-hero-kicker mb-2"><i class="bi bi-mortarboard me-1"></i>YOUR CAMPUS, YOUR MARKETPLACE</p>
+        <h1 class="cm-hero-title mb-2">Find What You Need on Campus</h1>
+        <p class="cm-hero-subtitle mb-4">Buy, sell and exchange useful finds within your college community.</p>
+        <form class="cm-hero-search mx-auto mx-lg-0" action="/" method="GET">
+          <div class="input-group input-group-lg">
+            <input
+              type="search"
+              name="q"
+              class="form-control"
+              placeholder="Search textbooks, electronics, cycles..."
+              value="<%= query.q || '' %>"
+              aria-label="Search listings"
+            />
+            <button class="btn cm-btn-primary px-4" type="submit">Search</button>
+          </div>
+          <%# Preserve other active filters %>
+          <% if (query.category) { %><input type="hidden" name="category" value="<%= query.category %>" /><% } %>
+          <% if (query.condition) { %><input type="hidden" name="condition" value="<%= query.condition %>" /><% } %>
+          <% if (query.minPrice)  { %><input type="hidden" name="minPrice"  value="<%= query.minPrice  %>" /><% } %>
+          <% if (query.maxPrice)  { %><input type="hidden" name="maxPrice"  value="<%= query.maxPrice  %>" /><% } %>
+          <% if (query.college)   { %><input type="hidden" name="college"   value="<%= query.college   %>" /><% } %>
+        </form>
+        <% if (isAuthenticated) { %>
+          <button type="button" class="btn btn-sm btn-outline-light mt-3" id="saveCurrentSearch"
+            data-query="<%= query.q || '' %>" data-category="<%= query.category || '' %>"
+            data-condition="<%= query.condition || '' %>" data-min-price="<%= query.minPrice || '' %>"
+            data-max-price="<%= query.maxPrice || '' %>" data-college="<%= query.college || '' %>">Save this search</button>
+        <% } %>
       </div>
-      <%# Preserve other active filters %>
-      <% if (query.category) { %><input type="hidden" name="category" value="<%= query.category %>" /><% } %>
-      <% if (query.condition) { %><input type="hidden" name="condition" value="<%= query.condition %>" /><% } %>
-      <% if (query.minPrice)  { %><input type="hidden" name="minPrice"  value="<%= query.minPrice  %>" /><% } %>
-      <% if (query.maxPrice)  { %><input type="hidden" name="maxPrice"  value="<%= query.maxPrice  %>" /><% } %>
-      <% if (query.college)   { %><input type="hidden" name="college"   value="<%= query.college   %>" /><% } %>
-    </form>
+      <div class="col-lg-5 d-none d-md-block">
+        <div class="cm-hero-stage mx-auto" aria-hidden="true">
+          <div class="cm-hero-orbit"></div>
+          <div class="cm-hero-photo cm-hero-photo-main">
+            <img src="https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=700&amp;auto=format&amp;fit=crop" alt="" fetchpriority="high">
+          </div>
+          <div class="cm-hero-photo cm-hero-photo-book">
+            <img src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&amp;auto=format&amp;fit=crop" alt="" loading="lazy">
+          </div>
+          <div class="cm-hero-photo cm-hero-photo-camera">
+            <img src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500&amp;auto=format&amp;fit=crop" alt="" loading="lazy">
+          </div>
+          <div class="cm-hero-float-tag"><i class="bi bi-arrow-left-right me-1"></i>Good finds, nearby</div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
 <main class="flex-grow-1 py-5">
   <div class="container">
+    <section class="cm-discover-section mb-5" id="discover" aria-labelledby="discoverTitle">
+      <div class="d-flex flex-column flex-sm-row align-items-sm-end justify-content-between gap-2 mb-3">
+        <div>
+          <p class="cm-eyebrow mb-1">EXPLORE YOUR CAMPUS</p>
+          <h2 class="cm-section-title mb-0" id="discoverTitle">Discover</h2>
+          <p class="text-muted small mb-0">Browse popular categories and campus-only sections.</p>
+        </div>
+        <a class="cm-link small fw-semibold" href="#listings">View all listings <i class="bi bi-arrow-down"></i></a>
+      </div>
+      <div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-3">
+        <% categories.slice(0, 3).forEach(function(category, index) { %>
+          <div class="col">
+            <a class="cm-discover-card" href="/?category=<%= category._id %>">
+              <span class="cm-discover-icon cm-discover-icon-<%= index %>"><i class="bi <%= ['bi-book', 'bi-lightning-charge', 'bi-tools'][index] %>"></i></span>
+              <strong><%= category.name %></strong>
+              <small>Explore listings <i class="bi bi-arrow-up-right"></i></small>
+            </a>
+          </div>
+        <% }); %>
+        <div class="col">
+          <a class="cm-discover-card" href="/?listingType=free">
+            <span class="cm-discover-icon cm-discover-icon-free"><i class="bi bi-gift"></i></span>
+            <strong>Free items</strong>
+            <small>Find campus giveaways <i class="bi bi-arrow-up-right"></i></small>
+          </a>
+        </div>
+        <div class="col">
+          <a class="cm-discover-card" href="/?listingType=lost">
+            <span class="cm-discover-icon cm-discover-icon-lost"><i class="bi bi-search"></i></span>
+            <strong>Lost &amp; found</strong>
+            <small>Browse campus posts <i class="bi bi-arrow-up-right"></i></small>
+          </a>
+        </div>
+      </div>
+      <div class="cm-account-card mt-4">
+        <div class="d-flex align-items-start gap-3">
+          <span class="cm-discover-icon cm-discover-icon-ai"><i class="bi bi-stars"></i></span>
+          <div class="flex-grow-1">
+            <h3 class="h6 fw-bold mb-1">Ask about listings</h3>
+            <p class="text-muted small mb-3">Describe what you’re looking for or ask how to trade safely on campus.</p>
+            <% if (isAuthenticated) { %>
+              <form id="assistantForm" class="input-group">
+                <input name="question" class="form-control" maxlength="1000" placeholder="Try “Find laptops under ₹30,000”" required>
+                <button class="btn cm-btn-primary" type="submit"><i class="bi bi-send me-1"></i>Ask</button>
+              </form>
+              <div class="d-flex flex-wrap gap-2 mt-2">
+                <button type="button" class="btn btn-sm btn-light" data-assistant-example="Find laptops under ₹30,000">Find affordable laptops</button>
+                <button type="button" class="btn btn-sm btn-light" data-assistant-example="How do I arrange a safe campus pickup?">Ask about safe pickup</button>
+              </div>
+              <div id="assistantAnswer" class="mt-3" aria-live="polite"></div>
+            <% } else { %>
+              <a class="btn btn-sm cm-btn-primary" href="/login?redirect=/">Sign in to ask</a>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </section>
+    <% if (recommendations && recommendations.length) { %>
+      <section class="mb-5" aria-labelledby="personalizedTitle">
+        <h2 class="cm-section-title" id="personalizedTitle">Picked for your interests</h2>
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3">
+          <% recommendations.forEach(function(product) { %><div class="col"><%- include('../partials/product-card', { product }) %></div><% }); %>
+        </div>
+      </section>
+    <% } %>
     <div class="row g-4">
 
       <!-- ============================================================
@@ -49,6 +140,16 @@
           <form id="filterForm" action="/" method="GET">
             <!-- Preserve search query -->
             <% if (query.q) { %><input type="hidden" name="q" value="<%= query.q %>" /><% } %>
+            <div class="mb-4">
+              <h3 class="cm-filter-section-title">Marketplace section</h3>
+              <select class="form-select form-select-sm" name="listingType">
+                <option value="">All listings</option>
+                <option value="sale" <%= query.listingType === 'sale' ? 'selected' : '' %>>For sale</option>
+                <option value="free" <%= query.listingType === 'free' ? 'selected' : '' %>>Free items</option>
+                <option value="lost" <%= query.listingType === 'lost' ? 'selected' : '' %>>Lost</option>
+                <option value="found" <%= query.listingType === 'found' ? 'selected' : '' %>>Found</option>
+              </select>
+            </div>
 
             <!-- Category -->
             <div class="mb-4">
@@ -146,7 +247,7 @@
       <!-- ============================================================
            Main — Product Grid
            ============================================================ -->
-      <div class="col-lg-9">
+      <div class="col-lg-9" id="listings">
 
         <!-- Results header -->
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
@@ -159,6 +260,7 @@
           <!-- Sort -->
           <form action="/" method="GET" class="d-flex align-items-center gap-2">
             <% if (query.q)        { %><input type="hidden" name="q"         value="<%= query.q %>" /><% } %>
+            <% if (query.listingType) { %><input type="hidden" name="listingType" value="<%= query.listingType %>" /><% } %>
             <% if (query.category) { %><input type="hidden" name="category"  value="<%= query.category %>" /><% } %>
             <% if (query.condition){ %><input type="hidden" name="condition"  value="<%= query.condition %>" /><% } %>
             <% if (query.minPrice) { %><input type="hidden" name="minPrice"   value="<%= query.minPrice %>" /><% } %>

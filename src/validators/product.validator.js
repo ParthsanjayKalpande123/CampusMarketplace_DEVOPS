@@ -57,6 +57,33 @@ const createProductRules = [
   body('isExchangeable')
     .optional()
     .isBoolean().withMessage('isExchangeable must be a boolean.'),
+
+  body('listingType')
+    .optional()
+    .isIn(['sale', 'free', 'lost', 'found'])
+    .withMessage('Listing type must be sale, free, lost, or found.'),
+
+  body('details')
+    .optional()
+    .isObject().withMessage('Category-specific details must be an object.'),
+
+  body('tags')
+    .optional()
+    .isArray({ max: 10 }).withMessage('Provide at most 10 listing tags.'),
+
+  body('tags.*')
+    .optional()
+    .isString().trim().isLength({ min: 1, max: 40 }).withMessage('Tags must be 1–40 characters.'),
+
+  body('pickupLocation')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 200 }).withMessage('Pickup location cannot exceed 200 characters.'),
+
+  body('pickupAvailability')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 200 }).withMessage('Pickup availability cannot exceed 200 characters.'),
 ];
 
 /**
@@ -101,6 +128,33 @@ const updateProductRules = [
   body('isExchangeable')
     .optional()
     .isBoolean().withMessage('isExchangeable must be a boolean.'),
+
+  body('listingType')
+    .optional()
+    .isIn(['sale', 'free', 'lost', 'found'])
+    .withMessage('Listing type must be sale, free, lost, or found.'),
+
+  body('details')
+    .optional()
+    .isObject().withMessage('Category-specific details must be an object.'),
+
+  body('tags')
+    .optional()
+    .isArray({ max: 10 }).withMessage('Provide at most 10 listing tags.'),
+
+  body('pickupLocation')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 200 }).withMessage('Pickup location cannot exceed 200 characters.'),
+
+  body('pickupAvailability')
+    .optional({ nullable: true })
+    .trim()
+    .isLength({ max: 200 }).withMessage('Pickup availability cannot exceed 200 characters.'),
+
+  body('lostFoundDate')
+    .optional({ nullable: true })
+    .isISO8601().withMessage('Lost/found date must be a valid date.'),
 
   // Disallow fields that go through dedicated endpoints
   body('status')

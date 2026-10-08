@@ -70,6 +70,22 @@
 
       <div class="row g-4">
 
+        <% if (stats.flaggedListings && stats.flaggedListings.length) { %>
+          <div class="col-12">
+            <div class="cm-admin-card">
+              <div class="cm-admin-card-header"><h2 class="cm-admin-card-title mb-0">AI-flagged listings — human review required</h2></div>
+              <div class="table-responsive"><table class="table cm-listings-table mb-0"><thead><tr><th>Listing</th><th>Seller</th><th>AI risk flags</th><th>Review</th></tr></thead><tbody>
+                <% stats.flaggedListings.forEach(function(p) { %><tr>
+                  <td><a href="/listings/<%= p._id %>"><%= p.title %></a></td>
+                  <td><%= p.seller ? p.seller.name : 'Unknown' %></td>
+                  <td><%= p.aiRiskFlags.join(', ') %></td>
+                  <td><a class="btn btn-sm btn-outline-primary" href="/listings/<%= p._id %>">Inspect</a></td>
+                </tr><% }); %>
+              </tbody></table></div>
+            </div>
+          </div>
+        <% } %>
+
         <div class="col-12 col-xl-5">
           <div class="cm-admin-card h-100">
             <div class="cm-admin-card-header"><h2 class="cm-admin-card-title mb-0">Listings by Location</h2></div>

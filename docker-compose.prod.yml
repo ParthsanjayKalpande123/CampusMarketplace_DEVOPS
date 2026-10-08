@@ -19,6 +19,7 @@
 #   MONGODB_URI     — mongodb://mongodb:27017/campus_marketplace  (internal)
 #   JWT_SECRET      — strong random 64-char string
 #   CORS_ORIGIN     — e.g. https://your-domain.com
+#   GEMINI_API_KEY  — optional; enables Gemini-powered marketplace features
 # =============================================================================
 
 x-app-common: &app-common
@@ -36,6 +37,8 @@ x-app-common: &app-common
       COOKIE_SECURE:   ${COOKIE_SECURE:-false}
       COOKIE_SAME_SITE: strict
       CORS_ORIGIN:     ${CORS_ORIGIN}
+      GEMINI_API_KEY:  ${GEMINI_API_KEY:-}
+      GEMINI_MODEL:    ${GEMINI_MODEL:-gemini-3.8-flash}
       LOG_LEVEL:       warn
     depends_on:
       mongodb:
