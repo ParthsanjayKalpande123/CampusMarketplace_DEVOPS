@@ -43,7 +43,7 @@ async function upsertDemoUser(email, data, passwordHash) {
   }
   return User.findOneAndUpdate(
     { email },
-    { $set: { ...data, email, passwordHash, role: 'student' } },
+    { $set: { ...data, email, passwordHash, role: 'student', isDemo: true } },
     { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
   );
 }
@@ -56,6 +56,7 @@ async function upsertDemoProduct(seller, category, product) {
         ...product,
         category: category._id,
         seller: seller._id,
+        isDemo: true,
         description: `${product.description} Seeded demo data for local feature previews.`,
       },
     },

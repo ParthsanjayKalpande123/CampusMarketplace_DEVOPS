@@ -4,8 +4,40 @@ const { config } = require('../config/env');
 const { AppError, ValidationError } = require('../utils/errors');
 const Product = require('../models/Product');
 
-const MAX_GEMINI_ATTEMPTS = 3;
+const MAX_GEMINI_ATTEMPTS = 2;
 const RETRYABLE_GEMINI_STATUSES = new Set([429, 500, 502, 503, 504]);
+const GEMINI_TIMEOUT_MS = 12000;
+
+function extractInteractionText(result) {
+  if (typeof result.output_text === 'string' && result.output_text.trim()) {
+    return result.output_text;
+  }
+
+  if (!Array.isArray(result.steps)) return '';
+  const textParts = [];
+  let collecting = false;
+
+  for (let i = result.steps.length - 1; i >= 0; i -= 1) {
+    const step = result.steps[i];
+    if (step.type === 'user_input') break;
+    if (step.type !== 'model_output' || !Array.isArray(step.content)) {
+      if (collecting) break;
+      continue;
+    }
+
+    for (let j = step.content.length - 1; j >= 0; j -= 1) {
+      const item = step.content[j];
+      if (item.type === 'text') {
+        collecting = true;
+        textParts.push(typeof item.text === 'string' ? item.text : '');
+      } else if (collecting) {
+        break;
+      }
+    }
+  }
+
+  return textParts.reverse().join('');
+}
 
 function retryDelay(response, attempt) {
   const retryAfter = Number(response.headers && response.headers.get('retry-after'));
@@ -35,16 +67,50 @@ async function askGemini(prompt, json = false) {
         generation_config: { temperature: json ? 0.2 : 0.4 },
         ...(json ? { response_format: { type: 'text', mime_type: 'application/json' } } : {}),
       }),
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+    }).catch((error) => {
+      if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+        throw new AppError(
+          'Gemini took too long to respond. Please try again.',
+          504,
+          'AI_PROVIDER_TIMEOUT'
+        );
+      }
+      throw error;
     });
-    if (response.ok) break;
-    if (!RETRYABLE_GEMINI_STATUSES.has(response.status)) {
+    if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new AppError(
-        error.error && error.error.message ? error.error.message : 'Gemini request failed.',
-        502,
-        'AI_PROVIDER_ERROR'
-      );
+      const message = error.error && error.error.message;
+      if (response.status === 429 && /quota|resource[_ ]exhausted|requests? per (day|hour)/i.test(message || '')) {
+        throw new AppError(
+          'Gemini API quota is exhausted. Check the quota for this API key or wait for it to reset.',
+          429,
+          'AI_QUOTA_EXCEEDED'
+        );
+      }
+      if (response.status === 429) {
+        throw new AppError(
+          'Gemini is receiving too many requests. Please wait a moment and try again.',
+          503,
+          'AI_PROVIDER_BUSY'
+        );
+      }
+      if (response.status === 503 && /high demand/i.test(message || '')) {
+        throw new AppError(
+          'Gemini is experiencing high demand right now. Please try again shortly.',
+          503,
+          'AI_PROVIDER_BUSY'
+        );
+      }
+      if (!RETRYABLE_GEMINI_STATUSES.has(response.status)) {
+        throw new AppError(
+          message || 'Gemini request failed.',
+          502,
+          'AI_PROVIDER_ERROR'
+        );
+      }
+    } else {
+      break;
     }
     if (attempt < MAX_GEMINI_ATTEMPTS - 1) {
       await new Promise((resolve) => setTimeout(resolve, retryDelay(response, attempt)));
@@ -59,8 +125,8 @@ async function askGemini(prompt, json = false) {
     );
   }
   const result = await response.json();
-  const text = result.output_text;
-  if (!text) throw new AppError('Gemini returned an empty response.', 502, 'AI_EMPTY_RESPONSE');
+  const text = extractInteractionText(result);
+  if (!text.trim()) throw new AppError('Gemini returned an empty response.', 502, 'AI_EMPTY_RESPONSE');
   return text;
 }
 
@@ -104,7 +170,7 @@ async function answerMarketplaceQuestion(question, userId = null) {
     throw new ValidationError('Ask a question between 2 and 1,000 characters.');
   }
   const intentText = await askGemini(
-    `Extract a short product search from this question. Return JSON only with searchTerm, maxPrice (number or null), and categoryKeyword (string or null). If it is not a listing search, set searchTerm to empty. Question: ${question.trim()}`,
+    `Answer the user's question about using a campus marketplace, or identify the listings they want to find. Return JSON only with answer (string), searchTerm (short string or empty), and maxPrice (number or null). For how-to or safety questions, provide a concise helpful answer and set searchTerm to empty. For listing searches, set searchTerm to concise item keywords, set maxPrice only when the user gives a price limit, leave answer empty, and do not invent or describe listings. Never claim live listings were found. Question: ${question.trim()}`,
     true
   );
   let intent;
@@ -126,15 +192,15 @@ async function answerMarketplaceQuestion(question, userId = null) {
     }
     const listings = await Product.find(filter).select('title price condition category').populate('category', 'name')
       .sort({ price: 1 }).limit(8).lean();
-    const summary = listings.map(({ title, price, condition, category }) => ({
-      title, price, condition, category: category && category.name,
-    }));
-    const answer = await askGemini(
-      `Answer the user's campus marketplace search using only these live listings. If none match, say so. Question: ${question.trim()}. Listings: ${JSON.stringify(summary)}`
-    );
+    const answer = listings.length
+      ? `Here are the campus listings matching "${intent.searchTerm}".`
+      : `I couldn't find any available listings matching "${intent.searchTerm}". Try different keywords or a higher price limit.`;
     return { answer, listings };
   }
-  return { answer: await askGemini(`You are the Campus Marketplace assistant. Answer questions about how to use a campus marketplace. Do not claim to have searched live listings. Question: ${question.trim()}`), listings: [] };
+  if (typeof intent.answer !== 'string' || !intent.answer.trim()) {
+    throw new AppError('Gemini returned search data in an invalid format.', 502, 'AI_INVALID_RESPONSE');
+  }
+  return { answer: intent.answer.trim(), listings: [] };
 }
 
 async function checkListing(input) {

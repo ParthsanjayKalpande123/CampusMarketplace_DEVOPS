@@ -74,6 +74,11 @@ const productSchema = new Schema(
       required: [true, 'Seller is required.'],
     },
 
+    isDemo: {
+      type: Boolean,
+      default: false,
+    },
+
     /** Approximate location, e.g. "Hostel Block A" or "Main Campus" */
     location: {
       type: String,

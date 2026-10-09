@@ -61,6 +61,7 @@
             const condMap = { 'new':'New','like-new':'Like New','good':'Good','fair':'Fair','poor':'Poor' };
           %>
           <span class="badge <%= statusCls %> cm-detail-badge"><%= statusLabel %></span>
+          <% if (product.isDemo) { %><span class="badge bg-info text-dark cm-detail-badge">DEMO — NOT A REAL OFFER</span><% } %>
           <span class="badge bg-light text-dark cm-detail-badge border"><%= condMap[product.condition] || product.condition %></span>
           <% if (product.isExchangeable) { %>
             <span class="badge bg-light text-primary cm-detail-badge border border-primary">
@@ -73,6 +74,9 @@
         </div>
 
         <h1 class="cm-product-detail-title mb-1"><%= product.title %></h1>
+        <% if (product.isDemo) { %>
+          <div class="alert alert-info py-2 small" role="note">This is a sample listing for demonstration only. It is not a real product offer.</div>
+        <% } %>
         <p class="text-muted small mb-3">
           Listed <%= product.createdAt ? new Date(product.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' }) : '' %>
         </p>

@@ -22,6 +22,19 @@ function geminiResponse(text) {
   };
 }
 
+function geminiRestResponse(text) {
+  return {
+    ok: true,
+    status: 200,
+    json: async () => ({
+      steps: [{
+        type: 'model_output',
+        content: [{ type: 'text', text }],
+      }],
+    }),
+  };
+}
+
 function geminiError(status, message, retryAfter) {
   return {
     ok: false,
@@ -88,7 +101,58 @@ describe('Gemini marketplace features', () => {
       statusCode: 503,
       message: 'Gemini is temporarily busy. Please try again in a moment.',
     });
-    expect(global.fetch).toHaveBeenCalledTimes(3);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns a clear quota error without retrying an exhausted daily quota', async () => {
+    global.fetch.mockResolvedValue(geminiError(
+      429,
+      'Rate limit exceeded for model (limit: 20 requests per day on Free Tier).'
+    ));
+
+    await expect(ai.generateListing('Engineering textbook in good condition')).rejects.toMatchObject({
+      code: 'AI_QUOTA_EXCEEDED',
+      statusCode: 429,
+      message: 'Gemini API quota is exhausted. Check the quota for this API key or wait for it to reset.',
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry a temporary Gemini rate limit', async () => {
+    global.fetch.mockResolvedValue(geminiError(429, 'Too many requests per minute.'));
+
+    await expect(ai.generateListing('Engineering textbook in good condition')).rejects.toMatchObject({
+      code: 'AI_PROVIDER_BUSY',
+      statusCode: 503,
+      message: 'Gemini is receiving too many requests. Please wait a moment and try again.',
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns high-demand responses immediately instead of retrying', async () => {
+    global.fetch.mockResolvedValue(geminiError(
+      503,
+      'The model is currently experiencing high demand. Please try again later.'
+    ));
+
+    await expect(ai.generateListing('Engineering textbook in good condition')).rejects.toMatchObject({
+      code: 'AI_PROVIDER_BUSY',
+      statusCode: 503,
+      message: 'Gemini is experiencing high demand right now. Please try again shortly.',
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports Gemini request timeouts clearly', async () => {
+    const timeout = new Error('Request timed out');
+    timeout.name = 'TimeoutError';
+    global.fetch.mockRejectedValue(timeout);
+
+    await expect(ai.generateListing('Engineering textbook in good condition')).rejects.toMatchObject({
+      code: 'AI_PROVIDER_TIMEOUT',
+      statusCode: 504,
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   it('recommends a price using marketplace comparables', async () => {
@@ -106,19 +170,64 @@ describe('Gemini marketplace features', () => {
   });
 
   it('answers marketplace questions and includes live listing results when available', async () => {
-    global.fetch
-      .mockResolvedValueOnce(geminiResponse(JSON.stringify({
-        searchTerm: '',
-        maxPrice: null,
-        categoryKeyword: null,
-      })))
-      .mockResolvedValueOnce(geminiResponse('Meet on campus and confirm the item before paying.'));
+    global.fetch.mockResolvedValue(geminiResponse(JSON.stringify({
+      answer: 'Meet on campus and confirm the item before paying.',
+      searchTerm: '',
+      maxPrice: null,
+    })));
 
     await expect(ai.answerMarketplaceQuestion('How do I buy safely?')).resolves.toEqual({
       answer: 'Meet on campus and confirm the item before paying.',
       listings: [],
     });
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('extracts assistant text from the raw Interactions API response steps', async () => {
+    global.fetch.mockResolvedValue(geminiRestResponse(JSON.stringify({
+      answer: 'Meet on campus and confirm the item before paying.',
+      searchTerm: '',
+      maxPrice: null,
+    })));
+
+    await expect(ai.answerMarketplaceQuestion('How do I buy safely?')).resolves.toEqual({
+      answer: 'Meet on campus and confirm the item before paying.',
+      listings: [],
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns live listings for search questions without a second Gemini request', async () => {
+    const listings = [{
+      _id: 'listing-1',
+      title: 'Used laptop',
+      price: 25000,
+      condition: 'good',
+      category: { name: 'Electronics' },
+    }];
+    Product.find.mockReturnValue({
+      select: jest.fn().mockReturnThis(),
+      populate: jest.fn().mockReturnThis(),
+      sort: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      lean: jest.fn().mockResolvedValue(listings),
+    });
+    global.fetch.mockResolvedValue(geminiResponse(JSON.stringify({
+      answer: '',
+      searchTerm: 'laptop',
+      maxPrice: 30000,
+    })));
+
+    await expect(ai.answerMarketplaceQuestion('Find laptops under 30000')).resolves.toEqual({
+      answer: 'Here are the campus listings matching "laptop".',
+      listings,
+    });
+    expect(Product.find).toHaveBeenCalledWith({
+      status: 'available',
+      $text: { $search: 'laptop' },
+      price: { $lte: 30000 },
+    });
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   it('returns quality feedback for a draft listing', async () => {
