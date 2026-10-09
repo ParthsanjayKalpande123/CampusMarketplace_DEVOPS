@@ -116,6 +116,7 @@ assistantForm?.addEventListener('submit', async (event) => {
   const answer = document.getElementById('assistantAnswer');
   const submit = assistantForm.querySelector('[type="submit"]');
   submit.disabled = true;
+  answer.setAttribute('aria-busy', 'true');
   answer.textContent = 'Searching campus listings and preparing an answer...';
   try {
     const data = await featureApi('/api/v1/features/ai/assistant', {
@@ -137,6 +138,7 @@ assistantForm?.addEventListener('submit', async (event) => {
   } catch (error) {
     answer.textContent = error.message;
   } finally {
+    answer.setAttribute('aria-busy', 'false');
     submit.disabled = false;
   }
 });

@@ -124,6 +124,11 @@ const userSchema = new Schema(
       },
       default: 'student',
     },
+
+    isDemo: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

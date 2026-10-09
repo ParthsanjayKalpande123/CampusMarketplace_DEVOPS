@@ -39,6 +39,7 @@
       <% } %>
       <!-- Status badge -->
       <span class="cm-status-badge <%= statusInfo.cls %>"><%= statusInfo.label %></span>
+      <% if (product.isDemo) { %><span class="cm-demo-badge">Demo</span><% } %>
       <!-- Exchange badge -->
       <% if (product.isExchangeable) { %>
         <span class="cm-exchange-badge"><i class="bi bi-arrow-left-right me-1"></i>Exchange</span>
@@ -51,6 +52,7 @@
         <span class="cm-category-pill"><%= categoryName %></span>
       <% } %>
       <h3 class="cm-card-title"><%= product.title %></h3>
+      <% if (product.isDemo) { %><p class="small text-muted mb-1">Showcase listing — not a real offer.</p><% } %>
       <div class="d-flex align-items-center justify-content-between mt-2">
         <span class="cm-card-price">Rs. <%= product.price.toLocaleString('en-IN') %></span>
         <span class="cm-condition-badge"><%= conditionLabel %></span>
