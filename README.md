@@ -96,6 +96,10 @@ With MongoDB running, use `npm run seed:demo` to create a clearly labelled set o
 
 For Docker Compose, add `GEMINI_API_KEY` (and optionally `GEMINI_MODEL`) to the root `.env` file and rebuild the app container with `docker compose up -d --build app`. Then seed the local database with `docker compose exec app npm run seed:demo`.
 
+For a larger local load/UI test dataset, run `npm run seed:test-data -- --execute --confirm-database=campus_marketplace`. This creates 25 clearly labeled demo accounts and 150 clearly labeled listings. The seeder only permits the local `campus_marketplace` database, refuses `NODE_ENV=production`, and never updates or deletes existing records. The first successful run prints a shared password for newly created accounts; store it securely because it is not saved in the repository. Re-running skips records that already exist.
+
+With Docker Compose, run `docker compose exec app npm run seed:test-data -- --execute --confirm-database=campus_marketplace`.
+
 ### Verifying the Server
 
 ```bash
