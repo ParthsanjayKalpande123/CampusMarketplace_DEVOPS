@@ -56,6 +56,7 @@ pipeline can run successfully.
 | `MONGODB_URI`        | `mongodb://mongodb:27017/campus_marketplace` (internal Docker network) |
 | `CORS_ORIGIN`        | Your domain, e.g. `https://campus.example.com` or the EC2 IP |
 | `MONGO_ROOT_PASSWORD`| Strong password for MongoDB root user. Generate: `openssl rand -hex 24` |
+| `KIBANA_ENCRYPTION_KEY` | Stable random key (at least 32 characters) required for Kibana alerting. Generate: `openssl rand -hex 32`. Keep it unchanged across deployments. |
 
 ## Quick Setup Commands
 
@@ -87,6 +88,7 @@ gh secret set JWT_SECRET
 gh secret set MONGODB_URI        --body "mongodb://mongodb:27017/campus_marketplace"
 gh secret set CORS_ORIGIN
 gh secret set MONGO_ROOT_PASSWORD
+gh secret set KIBANA_ENCRYPTION_KEY
 ```
 
 ## Verifying the Pipeline

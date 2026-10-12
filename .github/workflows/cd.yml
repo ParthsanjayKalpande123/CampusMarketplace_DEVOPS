@@ -28,6 +28,7 @@
 #   MONGODB_URI             — mongodb://mongodb:27017/campus_marketplace
 #   CORS_ORIGIN             — e.g. https://your-domain.com
 #   MONGO_ROOT_PASSWORD     — MongoDB root password for production
+#   KIBANA_ENCRYPTION_KEY   — Stable random key (at least 32 characters) for Kibana alerting
 #   GEMINI_API_KEY          — Optional; enables Gemini-powered marketplace features
 # =============================================================================
 
@@ -149,6 +150,7 @@ jobs:
               mongodb_uri='${{ secrets.MONGODB_URI }}' \
               cors_origin='${{ secrets.CORS_ORIGIN }}' \
               mongo_root_password='${{ secrets.MONGO_ROOT_PASSWORD }}' \
+              kibana_encryption_key='${{ secrets.KIBANA_ENCRYPTION_KEY }}' \
               gemini_api_key="${GEMINI_API_KEY}" \
               deploy_slot=green \
               app_port=3002"
@@ -200,6 +202,7 @@ jobs:
               mongodb_uri='${{ secrets.MONGODB_URI }}' \
               cors_origin='${{ secrets.CORS_ORIGIN }}' \
               mongo_root_password='${{ secrets.MONGO_ROOT_PASSWORD }}' \
+              kibana_encryption_key='${{ secrets.KIBANA_ENCRYPTION_KEY }}' \
               gemini_api_key="${GEMINI_API_KEY}" \
               deploy_slot=blue \
               app_port=3000 \

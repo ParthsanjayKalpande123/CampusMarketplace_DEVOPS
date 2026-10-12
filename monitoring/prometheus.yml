@@ -10,6 +10,9 @@ global:
   scrape_interval:     15s   # How frequently to scrape targets
   evaluation_interval: 15s   # How frequently to evaluate rules
 
+rule_files:
+  - /etc/prometheus/alert-rules.yml
+
 scrape_configs:
 
   # Self-monitoring

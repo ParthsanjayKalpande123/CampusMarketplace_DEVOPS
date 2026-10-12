@@ -21,11 +21,14 @@ FROM node:22-alpine AS deps
 
 WORKDIR /app
 
+# bcrypt falls back to a native build when a prebuilt binary is unavailable.
+RUN apk add --no-cache python3 make g++
+
 # Copy only dependency manifests first for layer caching
 COPY package.json package-lock.json ./
 
 # Install production dependencies only; skip devDependencies
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm_config_nodedir=/usr/local npm ci --omit=dev && npm cache clean --force
 
 
 # ---------------------------------------------------------------------------

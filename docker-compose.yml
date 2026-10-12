@@ -78,6 +78,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -161,6 +162,7 @@ services:
     restart: unless-stopped
     environment:
       ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
+      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: ${KIBANA_ENCRYPTION_KEY:?Set KIBANA_ENCRYPTION_KEY in .env}
     ports:
       - "5601:5601"
     depends_on:

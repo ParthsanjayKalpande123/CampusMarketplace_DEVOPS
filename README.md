@@ -90,6 +90,64 @@ npm start
 
 The server starts on port 3000 (or the value of the PORT environment variable).
 
+### Running with Kubernetes
+
+The basic Kubernetes manifests run the application and a single MongoDB instance.
+MongoDB data is stored in a persistent volume claim. This is intended for local
+development or learning; it is not a highly available production database.
+The existing Docker Compose, Terraform, Ansible, and EC2 deployment remains
+unchanged.
+
+Build the application image and make it available to your local cluster:
+
+```bash
+docker build -t campus-marketplace:local .
+
+# Use one command for the cluster you are running:
+minikube image load campus-marketplace:local
+# Or, for Kind:
+kind load docker-image campus-marketplace:local
+```
+
+Create the namespace and a JWT secret, then deploy the manifests. The JWT secret
+is generated locally and is not stored in the repository:
+
+```powershell
+kubectl create namespace campus-marketplace --dry-run=client -o yaml | kubectl apply -f -
+$jwtSecret = node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+kubectl create secret generic campus-marketplace-secrets --namespace campus-marketplace --from-literal=JWT_SECRET=$jwtSecret
+kubectl apply -f k8s\campus-marketplace.yaml
+kubectl rollout status deployment/mongodb --namespace campus-marketplace
+kubectl rollout status deployment/campus-marketplace --namespace campus-marketplace
+```
+
+To enable the optional Gemini features, add `GEMINI_API_KEY` to the Kubernetes
+Secret as well. Do not use the local MongoDB deployment or its default
+unauthenticated configuration for production.
+
+Access the app through a local port-forward (keep this command running):
+
+```bash
+kubectl port-forward --namespace campus-marketplace service/campus-marketplace 3000:3000
+```
+
+Then open `http://localhost:3000` or check its health endpoint:
+
+```bash
+curl http://localhost:3000/api/v1/health
+```
+
+Useful Kubernetes commands:
+
+```bash
+kubectl get pods,services,pvc --namespace campus-marketplace
+kubectl logs deployment/campus-marketplace --namespace campus-marketplace
+kubectl delete -f k8s\campus-marketplace.yaml
+```
+
+Deleting the manifest also deletes its MongoDB persistent volume claim and the
+data stored in it.
+
 ### Preview with local demo data
 
 With MongoDB running, use `npm run seed:demo` to create a clearly labelled set of sample accounts, listings, offers, orders, reviews, notifications, saved searches, and other marketplace activity. The script prints a randomly generated password for the demo student and seller accounts. It is disabled when `NODE_ENV=production`; running it again refreshes activity for those reserved demo accounts.
@@ -188,3 +246,26 @@ All endpoints are prefixed with `/api/v1`.
 ## License
 
 ISC
+
+
+
+
+CI (Continuous Integration)
+1. Checkout source code from GitHub.
+2. Set up Node.js 22 and install dependencies using npm ci.
+3. Start MongoDB service for testing.
+4. Run Jest test cases against the application.
+5. Run npm audit to scan dependency vulnerabilities.
+6. Build the Docker image and scan it using Trivy.
+7. Upload npm audit and Trivy reports as artifacts.
+CD (Continuous Deployment)
+1. Trigger deployment when code is pushed to the main branch.
+2. Run the CI workflow as a deployment gate.
+3. Build the Docker image and tag it with the Git commit SHA and latest.
+4. Authenticate with AWS and push the image to Amazon ECR.
+5. Install Ansible and configure SSH access to the EC2 instance.
+6. Deploy the new application version to the GREEN slot on port 3002.
+7. Health-check GREEN using /api/v1/health.
+8. If GREEN passes, deploy the tested image to BLUE on port 3000.
+9. If GREEN fails, attempt rollback by stopping GREEN while keeping BLUE live.
+10. Verify the live application on port 3000 and clean up the SSH key.

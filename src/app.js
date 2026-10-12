@@ -31,7 +31,6 @@ const { rateLimit } = require('express-rate-limit');
 const { config }       = require('./config/env');
 const requestLogger    = require('./middleware/logger.middleware');
 const errorMiddleware  = require('./middleware/error.middleware');
-const { NotFoundError } = require('./utils/errors');
 const apiRoutes        = require('./routes/index');
 const viewRoutes       = require('./routes/views.routes');
 const { register, httpRequestDuration, httpRequestTotal } = require('./utils/metrics');

@@ -18,6 +18,7 @@
 #   IMAGE_TAG       — e.g. latest or a git SHA
 #   MONGODB_URI     — mongodb://mongodb:27017/campus_marketplace  (internal)
 #   JWT_SECRET      — strong random 64-char string
+#   KIBANA_ENCRYPTION_KEY — stable random key, at least 32 characters
 #   CORS_ORIGIN     — e.g. https://your-domain.com
 #   GEMINI_API_KEY  — optional; enables Gemini-powered marketplace features
 # =============================================================================
@@ -107,6 +108,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -190,6 +192,7 @@ services:
     restart: unless-stopped
     environment:
       ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
+      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: ${KIBANA_ENCRYPTION_KEY:?Set KIBANA_ENCRYPTION_KEY}
     ports:
       - "5601:5601"
     depends_on:

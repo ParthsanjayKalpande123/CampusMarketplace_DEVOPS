@@ -386,7 +386,7 @@ describe('PUT /api/v1/products/:id', () => {
 
   it('should return 403 if a different user tries to update', async () => {
     const owner   = await createUser({ email: 'owner@test.com' });
-    const other   = await createUser({ email: 'other@test.com', name: 'Other' });
+    await createUser({ email: 'other@test.com', name: 'Other' });
     const cat     = await createCategory();
     const product = await createProduct(owner._id, cat._id);
 
@@ -463,7 +463,7 @@ describe('PATCH /api/v1/products/:id/status', () => {
 
   it('should return 403 if a different user tries to update status', async () => {
     const owner   = await createUser({ email: 'owner@test.com' });
-    const other   = await createUser({ email: 'other@test.com', name: 'Other' });
+    await createUser({ email: 'other@test.com', name: 'Other' });
     const cat     = await createCategory();
     const product = await createProduct(owner._id, cat._id);
 
@@ -501,7 +501,7 @@ describe('DELETE /api/v1/products/:id', () => {
 
   it('should return 403 if a different user tries to delete', async () => {
     const owner   = await createUser({ email: 'owner@test.com' });
-    const other   = await createUser({ email: 'other@test.com', name: 'Other' });
+    await createUser({ email: 'other@test.com', name: 'Other' });
     const cat     = await createCategory();
     const product = await createProduct(owner._id, cat._id);
 

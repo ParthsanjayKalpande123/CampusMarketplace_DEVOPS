@@ -1,0 +1,29 @@
+groups:
+  - name: campus-marketplace
+    rules:
+      - alert: CampusMarketplaceTargetDown
+        expr: up{job="campus-marketplace"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Campus Marketplace is not being scraped
+          description: Prometheus has been unable to scrape the app metrics endpoint for at least one minute.
+
+      - alert: CampusMarketplaceHighServerErrorCount
+        expr: sum(increase(http_requests_total{job="campus-marketplace",status_code=~"5.."}[5m])) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Campus Marketplace is returning server errors
+          description: More than five HTTP 5xx responses occurred in a five-minute window for at least two minutes.
+
+      - alert: CampusMarketplaceHighP95Latency
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{job="campus-marketplace"}[5m]))) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Campus Marketplace p95 request latency is high
+          description: The estimated 95th percentile request duration has exceeded one second for at least five minutes.

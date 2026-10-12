@@ -15,7 +15,8 @@
 #
 # Required vars (from playbook --extra-vars):
 #   ecr_registry, ecr_repository, image_tag, aws_region,
-#   jwt_secret, mongodb_uri, cors_origin, mongo_root_password
+#   jwt_secret, mongodb_uri, cors_origin, mongo_root_password,
+#   kibana_encryption_key
 # Optional vars:
 #   gemini_api_key
 # =============================================================================
@@ -81,6 +82,8 @@
 
       MONGO_ROOT_USER={{ mongo_root_user }}
       MONGO_ROOT_PASSWORD={{ mongo_root_password }}
+
+      KIBANA_ENCRYPTION_KEY={{ kibana_encryption_key }}
 
       LOG_LEVEL=warn
     dest:  "{{ app_dir }}/.env"

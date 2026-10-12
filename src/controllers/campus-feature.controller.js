@@ -9,7 +9,7 @@ const { config } = require('../config/env');
 const api = require('../utils/apiResponse');
 const features = require('../services/campus-feature.service');
 const ai = require('../services/ai.service');
-const { NotFoundError, ValidationError, AuthorizationError } = require('../utils/errors');
+const { NotFoundError, ValidationError } = require('../utils/errors');
 
 function handler(operation) {
   return async (req, res, next) => {
