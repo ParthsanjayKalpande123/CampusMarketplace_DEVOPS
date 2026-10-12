@@ -28,7 +28,8 @@
 #   MONGODB_URI             — mongodb://mongodb:27017/campus_marketplace
 #   CORS_ORIGIN             — e.g. https://your-domain.com
 #   MONGO_ROOT_PASSWORD     — MongoDB root password for production
-#   KIBANA_ENCRYPTION_KEY   — Stable random key (at least 32 characters) for Kibana alerting
+#   KIBANA_ENCRYPTION_KEY   — Optional stable key (at least 32 characters); generated and
+#                             persisted on EC2 when omitted
 #   GEMINI_API_KEY          — Optional; enables Gemini-powered marketplace features
 # =============================================================================
 

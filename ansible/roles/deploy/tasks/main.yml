@@ -16,7 +16,7 @@
 # Required vars (from playbook --extra-vars):
 #   ecr_registry, ecr_repository, image_tag, aws_region,
 #   jwt_secret, mongodb_uri, cors_origin, mongo_root_password,
-#   kibana_encryption_key
+#   kibana_encryption_key (optional; reused or generated when omitted)
 # Optional vars:
 #   gemini_api_key
 # =============================================================================
@@ -56,6 +56,62 @@
 # Step 2 — Write .env file (never logged — no_log: true)
 # ---------------------------------------------------------------------------
 
+- name: Use configured Kibana encryption key
+  ansible.builtin.set_fact:
+    resolved_kibana_encryption_key: "{{ kibana_encryption_key | default('') | trim }}"
+  when:
+    - not (teardown_only | default(false) | bool)
+    - kibana_encryption_key | default('') | trim | length > 0
+  tags: deploy
+
+- name: Read existing Kibana encryption key
+  ansible.builtin.shell: |
+    if [ -f {{ app_dir | quote }}/.env ]; then
+      sed -n 's/^KIBANA_ENCRYPTION_KEY=//p' {{ (app_dir ~ '/.env') | quote }} | head -n 1
+    fi
+  register: existing_kibana_encryption_key
+  changed_when: false
+  no_log: true
+  when:
+    - not (teardown_only | default(false) | bool)
+    - resolved_kibana_encryption_key is not defined
+  tags: deploy
+
+- name: Reuse existing Kibana encryption key
+  ansible.builtin.set_fact:
+    resolved_kibana_encryption_key: "{{ existing_kibana_encryption_key.stdout | trim }}"
+  when:
+    - not (teardown_only | default(false) | bool)
+    - resolved_kibana_encryption_key is not defined
+    - existing_kibana_encryption_key.stdout | default('') | trim | length > 0
+  tags: deploy
+
+- name: Generate persistent Kibana encryption key
+  ansible.builtin.command: openssl rand -hex 32
+  register: generated_kibana_encryption_key
+  changed_when: false
+  no_log: true
+  when:
+    - not (teardown_only | default(false) | bool)
+    - resolved_kibana_encryption_key is not defined
+  tags: deploy
+
+- name: Save generated Kibana encryption key for this deployment
+  ansible.builtin.set_fact:
+    resolved_kibana_encryption_key: "{{ generated_kibana_encryption_key.stdout | trim }}"
+  when:
+    - not (teardown_only | default(false) | bool)
+    - resolved_kibana_encryption_key is not defined
+  tags: deploy
+
+- name: Validate Kibana encryption key
+  ansible.builtin.assert:
+    that:
+      - resolved_kibana_encryption_key | length >= 32
+    fail_msg: "Kibana encryption key must contain at least 32 characters."
+  when: not (teardown_only | default(false) | bool)
+  tags: deploy
+
 - name: Write production environment file
   ansible.builtin.copy:
     content: |
@@ -83,7 +139,7 @@
       MONGO_ROOT_USER={{ mongo_root_user }}
       MONGO_ROOT_PASSWORD={{ mongo_root_password }}
 
-      KIBANA_ENCRYPTION_KEY={{ kibana_encryption_key }}
+      KIBANA_ENCRYPTION_KEY={{ resolved_kibana_encryption_key }}
 
       LOG_LEVEL=warn
     dest:  "{{ app_dir }}/.env"

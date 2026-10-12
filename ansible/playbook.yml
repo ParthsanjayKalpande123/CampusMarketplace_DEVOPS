@@ -14,7 +14,7 @@
 #   mongodb_uri         — MongoDB connection string
 #   cors_origin         — Allowed CORS origin
 #   mongo_root_password — MongoDB root password
-#   kibana_encryption_key — stable Kibana saved-object encryption key
+#   kibana_encryption_key — optional stable key; reused or generated when omitted
 #
 # Run manually:
 #   ansible-playbook ansible/playbook.yml \
